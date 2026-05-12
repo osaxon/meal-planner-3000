@@ -8,6 +8,10 @@ import type { LoggerContext } from "@orpc/experimental-pino";
 import type { AppDb } from "#/db/factory";
 import type { AuthSession, AuthUser } from "#/lib/auth";
 import type { FungiService } from "#/domains/fungi/fungi.service";
+import type { CategoryService } from "#/domains/categories/categories.service";
+import type { PreferencesService } from "#/domains/preferences/preferences.service";
+import type { MealService } from "#/domains/meals/meals.service";
+import type { ScheduleService } from "#/domains/schedule/schedule.service";
 import type { EventCollector } from "#/lib/wide-event";
 
 /** Base context provided by the RPC handler (includes logger from LoggingHandlerPlugin). */
@@ -17,13 +21,17 @@ export type BaseContext = LoggerContext & {
 
 /** Context after logging middleware — includes the wide event accumulator. */
 export type BaseWideEvent = BaseContext & {
-  wideEvent: EventCollector;
+  wideEvent: EventCollector<string, string>;
 };
 
 /** Context after service-provider middleware — includes db and all services. */
 export type ContextWithServices = BaseWideEvent & {
   db: AppDb;
   fungiService: FungiService;
+  categoryService: CategoryService;
+  preferencesService: PreferencesService;
+  mealService: MealService;
+  scheduleService: ScheduleService;
 };
 
 /**

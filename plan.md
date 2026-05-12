@@ -20,16 +20,16 @@ The schedule can plan for 1, 2 or 4 week schedules.
 
 ### Schedule / user preferences
 
-A schedule can be customised and configured to place meals on certain days of the week. For example, weekdays only, evening meals only, evening and lunch, weekdays and weekends, or omit certain dates. 
+A schedule can be customised and configured to place meals on certain days of the week. For example, weekdays only, evening meals only, evening and lunch, weekdays and weekends, or omit certain dates.
 There should also be preferences to select more vegetarean or meat based, or more high fiber meals for a given schedule. This should be configurable per schedule.
 
 ### Meal Pool
 
-The meal pool is the collection of user defined meals. Each meal should should be categorised and should specify the ingredients required. 
+The meal pool is the collection of user defined meals. Each meal should should be categorised and should specify the ingredients required.
 The meals in the pool should also have other meta information to support with scheduling.
 Some ideas for meta information about a meal:
+
 - diet - meat or veggie
 - season - year round, spring/summer, BBQ, autumn/winter, festive
 - producesLeftovers - this would be true for a meal that is cooked as a large portion that gives more than 1 meal each
 - tags - list of free form tags
-

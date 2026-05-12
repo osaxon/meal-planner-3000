@@ -1,0 +1,101 @@
+import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { orpc, client } from "#/orpc/client";
+import { Checkbox } from "#/components/ui/checkbox";
+
+export const Route = createFileRoute("/_authenticated/shopping-list")({
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(orpc.schedule.getShoppingList.queryOptions()),
+  component: ShoppingListPage,
+});
+
+const LIST_KEY = () => orpc.schedule.getShoppingList.queryOptions().queryKey;
+
+function ShoppingListPage() {
+  const queryClient = useQueryClient();
+  const { data: items } = useSuspenseQuery(orpc.schedule.getShoppingList.queryOptions());
+
+  const toggle = useMutation({
+    mutationFn: (ingredientKey: string) => client.schedule.toggleShoppingItem({ ingredientKey }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: LIST_KEY() }),
+  });
+
+  if (items.length === 0) {
+    return (
+      <div className="max-w-lg">
+        <h1 className="text-2xl font-semibold tracking-tight">Shopping list</h1>
+        <p className="mt-4 text-sm text-muted-foreground">
+          No items yet.{" "}
+          <Link to="/schedule" className="underline underline-offset-2">
+            Generate a schedule
+          </Link>{" "}
+          with meals that have ingredients to populate this list.
+        </p>
+      </div>
+    );
+  }
+
+  const unchecked = items.filter((i) => !i.checked);
+  const checked = items.filter((i) => i.checked);
+
+  function formatQuantity(item: (typeof items)[number]) {
+    if (item.totalQuantity === null && item.unit === null) return null;
+    if (item.totalQuantity !== null && item.unit !== null)
+      return `${item.totalQuantity} ${item.unit}`;
+    if (item.totalQuantity !== null) return String(item.totalQuantity);
+    return item.unit;
+  }
+
+  function ItemRow({ item }: { item: (typeof items)[number] }) {
+    const qty = formatQuantity(item);
+    return (
+      <li className="flex items-center gap-3 py-2">
+        <Checkbox
+          id={item.ingredientKey}
+          checked={item.checked}
+          disabled={toggle.isPending}
+          onCheckedChange={() => toggle.mutate(item.ingredientKey)}
+        />
+        <label
+          htmlFor={item.ingredientKey}
+          className={`flex-1 cursor-pointer select-none text-sm ${
+            item.checked ? "text-muted-foreground line-through" : ""
+          }`}
+        >
+          {item.name}
+          {qty && <span className="ml-1.5 text-muted-foreground text-xs">× {qty}</span>}
+        </label>
+      </li>
+    );
+  }
+
+  return (
+    <div className="max-w-md">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight">Shopping list</h1>
+        <p className="text-sm text-muted-foreground">
+          {unchecked.length} of {items.length} remaining
+        </p>
+      </div>
+
+      <ul className="mt-6 divide-y">
+        {unchecked.map((item) => (
+          <ItemRow key={item.ingredientKey} item={item} />
+        ))}
+      </ul>
+
+      {checked.length > 0 && (
+        <>
+          <p className="mt-6 mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            Got it
+          </p>
+          <ul className="divide-y">
+            {checked.map((item) => (
+              <ItemRow key={item.ingredientKey} item={item} />
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
