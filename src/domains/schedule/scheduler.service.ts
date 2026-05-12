@@ -3,6 +3,7 @@ import { toDateKey, nextCalendarDayKey } from "#/lib/date-utils";
 import type {
   MealWithCategory,
   SchedulerInput,
+  SchedulingRule,
   GeneratedSlot,
   ScheduleConfig,
 } from "./scheduler.types";
@@ -72,31 +73,73 @@ function shuffle<T>(arr: T[]): T[] {
   return out;
 }
 
+type RuleState = { rule: SchedulingRule; count: number };
+
+/** Returns true if the meal matches the Rule's subject. */
+function mealMatchesSubject(meal: MealWithCategory, rule: SchedulingRule): boolean {
+  if (rule.subjectType === "diet") return meal.diet === rule.subjectValue;
+  if (rule.subjectType === "category") return meal.categoryId === rule.categoryId;
+  if (rule.subjectType === "tag") return meal.tags.includes(rule.subjectValue ?? "");
+  return false;
+}
+
+/** Returns true if placing this meal would exceed any `at_most` Rule. */
+function exceedsAtMost(meal: MealWithCategory, states: RuleState[]): boolean {
+  return states.some(
+    ({ rule, count }) =>
+      rule.operator === "at_most" && count >= rule.value && mealMatchesSubject(meal, rule),
+  );
+}
+
+/** Count remaining empty slots from index i onwards. */
+function remainingEmpty(result: GeneratedSlot[], fromIndex: number): number {
+  return result.slice(fromIndex).filter((s) => s.type === "empty").length;
+}
+
+/** Total meals still owed by unsatisfied `at_least` Rules. */
+function stillNeeded(states: RuleState[]): number {
+  return states
+    .filter(({ rule }) => rule.operator === "at_least")
+    .reduce((sum, { rule, count }) => sum + Math.max(0, rule.value - count), 0);
+}
+
+/**
+ * Pick a meal from the candidate pool.
+ * If `restrictToRequired` is true, only pick meals that satisfy at least one
+ * unfulfilled `at_least` Rule (best-effort reservation).
+ */
 function pickMeal(
   pool: MealWithCategory[],
   usedIds: Set<number>,
   mealTime: "lunch" | "dinner",
-  meatCount: number,
-  maxMeat: number,
-  fishCount: number,
-  maxFish: number,
+  states: RuleState[],
+  restrictToRequired: boolean,
 ): MealWithCategory | null {
-  return (
-    pool.find(
-      (m) =>
-        !usedIds.has(m.id) &&
-        (m.diet !== "meat" || meatCount < maxMeat) &&
-        (m.diet !== "fish" || fishCount < maxFish) &&
-        (m.suitableFor === "any" || m.suitableFor === mealTime),
-    ) ?? null
+  const candidates = pool.filter(
+    (m) =>
+      !usedIds.has(m.id) &&
+      !exceedsAtMost(m, states) &&
+      (m.suitableFor === "any" || m.suitableFor === mealTime),
   );
+
+  if (restrictToRequired) {
+    const required = candidates.filter((m) =>
+      states.some(
+        ({ rule, count }) =>
+          rule.operator === "at_least" && count < rule.value && mealMatchesSubject(m, rule),
+      ),
+    );
+    if (required.length > 0) return required[0]!;
+  }
+
+  return candidates[0] ?? null;
 }
 
 // ── Core algorithm ────────────────────────────────────────────────────────────
 
 export class SchedulerService {
   generate(input: SchedulerInput): GeneratedSlot[] {
-    const { meals, previousMealIds, preferences, config } = input;
+    const { meals, previousMealIds, preferences, config, rules } = input;
 
     // 1. Generate enabled slot frames
     const frames = generateSlotFrames(config, preferences.slotConfig);
@@ -110,9 +153,7 @@ export class SchedulerService {
       sourceSlotIndex: null,
     }));
 
-    // 3. Effective constraints (per-schedule overrides take precedence)
-    const maxMeat = config.maxMeatMealsOverride ?? preferences.maxMeatMeals;
-    const maxFish = config.maxFishMealsOverride ?? preferences.maxFishMeals;
+    // 3. Effective constraints
     const maxLeftovers = config.maxLeftoverMealsOverride ?? preferences.maxLeftoverMeals;
 
     // 4. Filter eligible meals: no BBQ, season matches, not in previous schedule
@@ -125,33 +166,39 @@ export class SchedulerService {
 
     if (eligibleMeals.length === 0) return result;
 
-    // 5. Shuffle for variety, then fill slots
+    // 5. Initialise Rule state counters
+    const ruleStates: RuleState[] = rules.map((rule) => ({ rule, count: 0 }));
+
+    // 6. Shuffle for variety, then fill slots
     const pool = shuffle(eligibleMeals);
     const usedIds = new Set<number>();
-    let meatCount = 0;
-    let fishCount = 0;
     let leftoverCount = 0;
 
     for (let i = 0; i < result.length; i++) {
       const slot = result[i]!;
       if (slot.type !== "empty") continue; // already assigned as leftover
 
-      // Try to pick an eligible, unused meal that suits this slot's meal time
-      let meal = pickMeal(pool, usedIds, slot.mealTime, meatCount, maxMeat, fishCount, maxFish);
+      // Best-effort reservation: if remaining empty slots ≤ total still owed by
+      // at_least rules, restrict picks to meals that help satisfy those rules.
+      const needed = stillNeeded(ruleStates);
+      const restrict = needed > 0 && remainingEmpty(result, i) <= needed;
+
+      let meal = pickMeal(pool, usedIds, slot.mealTime, ruleStates, restrict);
 
       // If all meals are used, reset uniqueness and try again (handles small pools)
       if (!meal && usedIds.size > 0) {
         usedIds.clear();
-        meal = pickMeal(pool, usedIds, slot.mealTime, meatCount, maxMeat, fishCount, maxFish);
+        meal = pickMeal(pool, usedIds, slot.mealTime, ruleStates, restrict);
       }
 
-      if (!meal) continue; // diet quotas exhausted — leave empty
+      if (!meal) continue; // all at_most rules exhausted — leave empty
 
-      // Assign the meal
+      // Assign the meal and update Rule counters
       result[i] = { ...slot, type: "filled", mealId: meal.id };
       usedIds.add(meal.id);
-      if (meal.diet === "meat") meatCount++;
-      if (meal.diet === "fish") fishCount++;
+      for (const state of ruleStates) {
+        if (mealMatchesSubject(meal, state.rule)) state.count++;
+      }
 
       // Place a leftover slot if applicable
       if (meal.producesLeftovers && leftoverCount < maxLeftovers) {

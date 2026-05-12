@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { SchedulerService, getEligibleSeasons } from "../scheduler.service";
 import type { MealWithCategory } from "#/domains/meals/meals.zod";
 import type { Preferences } from "#/domains/preferences/preferences.zod";
-import type { ScheduleConfig, GeneratedSlot } from "../scheduler.types";
+import type { ScheduleConfig, GeneratedSlot, SchedulingRule } from "../scheduler.types";
 
 // ── Test fixtures ─────────────────────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ const NO_SLOTS: Preferences["slotConfig"] = {
 function makePrefs(overrides: Partial<Preferences> = {}): Preferences {
   return {
     slotConfig: ALL_DINNERS,
-    maxMeatMeals: 99,
+    maxMeatMeals: 99, // kept for schema compatibility; Scheduler uses Rules instead
     maxFishMeals: 99,
     maxLeftoverMeals: 99,
     ...overrides,
@@ -87,6 +87,7 @@ function run(
   meals: MealWithCategory[],
   prefsOverride: Partial<Preferences> = {},
   configOverride: Partial<ScheduleConfig> = {},
+  rules: SchedulingRule[] = [],
 ): GeneratedSlot[] {
   return scheduler.generate({
     meals,
@@ -97,7 +98,28 @@ function run(
       durationWeeks: 1,
       ...configOverride,
     },
+    rules,
   });
+}
+
+function dietRule(
+  diet: "meat" | "fish" | "vegetarian",
+  operator: "at_most" | "at_least",
+  value: number,
+): SchedulingRule {
+  return { subjectType: "diet", categoryId: null, subjectValue: diet, operator, value };
+}
+
+function categoryRule(
+  categoryId: number,
+  operator: "at_most" | "at_least",
+  value: number,
+): SchedulingRule {
+  return { subjectType: "category", categoryId, subjectValue: null, operator, value };
+}
+
+function tagRule(tag: string, operator: "at_most" | "at_least", value: number): SchedulingRule {
+  return { subjectType: "tag", categoryId: null, subjectValue: tag, operator, value };
 }
 
 // ── Season detection ──────────────────────────────────────────────────────────
@@ -251,6 +273,7 @@ describe("previous schedule exclusion", () => {
       previousMealIds: [previousMeal.id],
       preferences: makePrefs(),
       config: { startDate: JAN_MONDAY, durationWeeks: 1 },
+      rules: [],
     });
 
     const filledIds = result.filter((s) => s.type === "filled").map((s) => s.mealId);
@@ -265,6 +288,7 @@ describe("previous schedule exclusion", () => {
       previousMealIds: [meal.id],
       preferences: makePrefs(),
       config: { startDate: JAN_MONDAY, durationWeeks: 1 },
+      rules: [],
     });
 
     const filled = result.filter((s) => s.type === "filled");
@@ -272,52 +296,107 @@ describe("previous schedule exclusion", () => {
   });
 });
 
-// ── Diet quotas ───────────────────────────────────────────────────────────────
+// ── Rule evaluation ───────────────────────────────────────────────────────────
 
-describe("diet quotas", () => {
-  it("does not exceed maxMeatMeals", () => {
+describe("rule evaluation — at_most (hard cap)", () => {
+  it("never exceeds an at_most diet Rule", () => {
     const meals = Array.from({ length: 7 }, (_, i) => makeMeal(i + 1, { diet: "meat" }));
-    const result = run(meals, { maxMeatMeals: 3, maxFishMeals: 99 });
+    const result = run(meals, {}, {}, [dietRule("meat", "at_most", 3)]);
 
-    const meatSlots = result.filter((s) => {
-      if (s.type !== "filled") return false;
-      return meals.find((m) => m.id === s.mealId)?.diet === "meat";
-    });
-    expect(meatSlots.length).toBeLessThanOrEqual(3);
+    const meatFilled = result.filter((s) => s.type === "filled");
+    expect(meatFilled.length).toBeLessThanOrEqual(3);
   });
 
-  it("does not exceed maxFishMeals", () => {
-    const meals = Array.from({ length: 7 }, (_, i) => makeMeal(i + 1, { diet: "fish" }));
-    const result = run(meals, { maxMeatMeals: 99, maxFishMeals: 2 });
+  it("never exceeds an at_most category Rule", () => {
+    const curryMeals = Array.from({ length: 5 }, (_, i) => makeMeal(i + 1, { categoryId: 99 }));
+    const otherMeals = Array.from({ length: 3 }, (_, i) => makeMeal(i + 10, { categoryId: 1 }));
+    const result = run([...curryMeals, ...otherMeals], {}, {}, [categoryRule(99, "at_most", 2)]);
 
-    const fishSlots = result.filter((s) => {
-      if (s.type !== "filled") return false;
-      return meals.find((m) => m.id === s.mealId)?.diet === "fish";
-    });
-    expect(fishSlots.length).toBeLessThanOrEqual(2);
+    const currySlots = result.filter(
+      (s) => s.type === "filled" && curryMeals.some((m) => m.id === s.mealId),
+    );
+    expect(currySlots.length).toBeLessThanOrEqual(2);
   });
 
-  it("fills remaining slots with vegetarian when meat quota is 0", () => {
+  it("never exceeds an at_most tag Rule", () => {
+    const quick = Array.from({ length: 5 }, (_, i) => makeMeal(i + 1, { tags: ["quick"] }));
+    const other = Array.from({ length: 3 }, (_, i) => makeMeal(i + 10));
+    const result = run([...quick, ...other], {}, {}, [tagRule("quick", "at_most", 2)]);
+
+    const quickSlots = result.filter(
+      (s) => s.type === "filled" && quick.some((m) => m.id === s.mealId),
+    );
+    expect(quickSlots.length).toBeLessThanOrEqual(2);
+  });
+
+  it("fills with other meals when a diet Rule caps to 0", () => {
     const meat = Array.from({ length: 4 }, (_, i) => makeMeal(i + 1, { diet: "meat" }));
     const veg = Array.from({ length: 4 }, (_, i) => makeMeal(i + 10, { diet: "vegetarian" }));
-    const result = run([...meat, ...veg], { maxMeatMeals: 0, maxFishMeals: 99 });
+    const result = run([...meat, ...veg], {}, {}, [dietRule("meat", "at_most", 0)]);
 
-    const filledIds = result.filter((s) => s.type === "filled").map((s) => s.mealId);
+    const filled = result.filter((s) => s.type === "filled");
     const vegIds = new Set(veg.map((m) => m.id));
-    expect(filledIds.every((id) => vegIds.has(id!))).toBe(true);
+    expect(filled.every((s) => vegIds.has(s.mealId!))).toBe(true);
+  });
+});
+
+describe("rule evaluation — at_least (best-effort)", () => {
+  it("meets an at_least diet Rule when the pool has enough eligible meals", () => {
+    const fish = Array.from({ length: 3 }, (_, i) => makeMeal(i + 1, { diet: "fish" }));
+    const other = Array.from({ length: 5 }, (_, i) => makeMeal(i + 10, { diet: "meat" }));
+    const result = run([...fish, ...other], {}, {}, [dietRule("fish", "at_least", 2)]);
+
+    const fishFilled = result.filter(
+      (s) => s.type === "filled" && fish.some((m) => m.id === s.mealId),
+    );
+    expect(fishFilled.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("respects per-schedule override for maxMeatMeals", () => {
-    const meals = Array.from({ length: 7 }, (_, i) => makeMeal(i + 1, { diet: "meat" }));
-    const result = scheduler.generate({
-      meals,
-      previousMealIds: [],
-      preferences: makePrefs({ maxMeatMeals: 99 }),
-      config: { startDate: JAN_MONDAY, durationWeeks: 1, maxMeatMealsOverride: 1 },
-    });
+  it("meets an at_least category Rule when the pool allows", () => {
+    const curry = Array.from({ length: 3 }, (_, i) => makeMeal(i + 1, { categoryId: 42 }));
+    const other = Array.from({ length: 5 }, (_, i) => makeMeal(i + 10, { categoryId: 1 }));
+    const result = run([...curry, ...other], {}, {}, [categoryRule(42, "at_least", 2)]);
 
-    const meatCount = result.filter((s) => s.type === "filled").length;
-    expect(meatCount).toBeLessThanOrEqual(1);
+    const curryFilled = result.filter(
+      (s) => s.type === "filled" && curry.some((m) => m.id === s.mealId),
+    );
+    expect(curryFilled.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("silently undershoots when the pool is too small to satisfy at_least", () => {
+    const fish = [makeMeal(1, { diet: "fish" })]; // only 1 fish, rule wants 3
+    const other = Array.from({ length: 6 }, (_, i) => makeMeal(i + 10, { diet: "meat" }));
+    const result = run([...fish, ...other], {}, {}, [dietRule("fish", "at_least", 3)]);
+
+    // Should still produce a valid schedule — not fail
+    expect(result.filter((s) => s.type !== "empty").length).toBeGreaterThan(0);
+  });
+
+  it("handles contradictory at_most and at_least rules on the same subject gracefully", () => {
+    const fish = Array.from({ length: 4 }, (_, i) => makeMeal(i + 1, { diet: "fish" }));
+    const other = Array.from({ length: 3 }, (_, i) => makeMeal(i + 10, { diet: "meat" }));
+    const result = run([...fish, ...other], {}, {}, [
+      dietRule("fish", "at_most", 1),
+      dietRule("fish", "at_least", 3),
+    ]);
+
+    // at_most is always honoured; schedule should still be produced
+    const fishFilled = result.filter(
+      (s) => s.type === "filled" && fish.some((m) => m.id === s.mealId),
+    );
+    expect(fishFilled.length).toBeLessThanOrEqual(1);
+    expect(result.some((s) => s.type !== "empty")).toBe(true);
+  });
+
+  it("meets an at_least tag Rule", () => {
+    const quick = Array.from({ length: 3 }, (_, i) => makeMeal(i + 1, { tags: ["quick"] }));
+    const other = Array.from({ length: 5 }, (_, i) => makeMeal(i + 10));
+    const result = run([...quick, ...other], {}, {}, [tagRule("quick", "at_least", 2)]);
+
+    const quickFilled = result.filter(
+      (s) => s.type === "filled" && quick.some((m) => m.id === s.mealId),
+    );
+    expect(quickFilled.length).toBeGreaterThanOrEqual(2);
   });
 });
 
@@ -364,6 +443,7 @@ describe("leftover placement", () => {
       previousMealIds: [],
       preferences: makePrefs({ maxLeftoverMeals: 99, slotConfig: ALL_LUNCHES_AND_DINNERS }),
       config: { startDate: JAN_MONDAY, durationWeeks: 1 },
+      rules: [],
     });
 
     for (const slot of result.filter((s) => s.type === "leftover")) {
@@ -387,8 +467,9 @@ describe("combined constraints", () => {
     const result = scheduler.generate({
       meals: [prevMeal, winterMeat, summerFish, veggie],
       previousMealIds: [prevMeal.id],
-      preferences: makePrefs({ maxMeatMeals: 1, slotConfig: MONDAY_ONLY_DINNERS }),
+      preferences: makePrefs({ slotConfig: MONDAY_ONLY_DINNERS }),
       config: { startDate: JAN_MONDAY, durationWeeks: 2 }, // 2 slots total (2 Mondays)
+      rules: [dietRule("meat", "at_most", 1)],
     });
 
     const filledIds = new Set(result.filter((s) => s.type === "filled").map((s) => s.mealId));
@@ -480,6 +561,7 @@ describe("meal suitability", () => {
       previousMealIds: [],
       preferences: makePrefs({ maxLeftoverMeals: 99, slotConfig: ALL_LUNCHES_AND_DINNERS }),
       config: { startDate: JAN_MONDAY, durationWeeks: 1 },
+      rules: [],
     });
 
     const leftoverSlots = result.filter(
@@ -519,6 +601,7 @@ describe("leftover targeting", () => {
         previousMealIds: [],
         preferences: makePrefs({ maxLeftoverMeals: 99, slotConfig: ALL_LUNCHES_AND_DINNERS }),
         config: { startDate: JAN_MONDAY, durationWeeks: 1 },
+        rules: [],
       });
 
       const sourceIdx = result.findIndex(
@@ -562,6 +645,7 @@ describe("leftover targeting", () => {
         // Dinners only — no lunch slots available to target
         preferences: makePrefs({ maxLeftoverMeals: 99, slotConfig: ALL_DINNERS }),
         config: { startDate: JAN_MONDAY, durationWeeks: 1 },
+        rules: [],
       });
 
       const sourceIdx = result.findIndex(
@@ -601,6 +685,7 @@ describe("leftover targeting", () => {
       previousMealIds: [],
       preferences: makePrefs({ maxLeftoverMeals: 99, slotConfig: MONDAY_ONLY_DINNERS }),
       config: { startDate: JAN_MONDAY, durationWeeks: 2 }, // two Monday slots
+      rules: [],
     });
 
     const sourceIdx = result.findIndex((s) => s.type === "filled" && s.mealId === leftoverMeal.id);

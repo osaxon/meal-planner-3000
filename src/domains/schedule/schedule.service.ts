@@ -5,6 +5,7 @@ import {
   householdPreferences,
   mealIngredients,
   shoppingListChecks,
+  schedulingRules,
 } from "#/db/schema";
 import { queryMealsWithTags } from "#/domains/meals/meals.queries";
 import { aggregateIngredients } from "./shopping-list.aggregator";
@@ -76,7 +77,13 @@ export class ScheduleService {
       maxLeftoverMeals: prefs!.maxLeftoverMeals,
     };
 
-    // 4. Run the scheduler
+    // 4. Fetch Scheduling Rules
+    const rules = await this.db
+      .select()
+      .from(schedulingRules)
+      .where(eq(schedulingRules.userId, userId));
+
+    // 5. Run the scheduler
     const generatedSlots = this.scheduler.generate({
       meals: mealPool,
       previousMealIds,
@@ -84,10 +91,9 @@ export class ScheduleService {
       config: {
         startDate: input.startDate,
         durationWeeks: input.durationWeeks,
-        maxMeatMealsOverride: input.maxMeatMealsOverride,
-        maxFishMealsOverride: input.maxFishMealsOverride,
         maxLeftoverMealsOverride: input.maxLeftoverMealsOverride,
       },
+      rules,
     });
 
     // 5. Persist: discard old previous, promote active → previous, insert new

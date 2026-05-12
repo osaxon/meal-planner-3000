@@ -6,9 +6,16 @@ export type { MealWithCategory, Preferences };
 export type ScheduleConfig = {
   startDate: Date;
   durationWeeks: 1 | 2 | 4;
-  maxMeatMealsOverride?: number;
-  maxFishMealsOverride?: number;
   maxLeftoverMealsOverride?: number;
+};
+
+/** Minimal Rule representation used by the Scheduler — no UI or DB concerns. */
+export type SchedulingRule = {
+  subjectType: "category" | "tag" | "diet";
+  categoryId: number | null;
+  subjectValue: string | null;
+  operator: "at_most" | "at_least";
+  value: number;
 };
 
 export type SchedulerInput = {
@@ -16,6 +23,7 @@ export type SchedulerInput = {
   previousMealIds: number[];
   preferences: Preferences;
   config: ScheduleConfig;
+  rules: SchedulingRule[];
 };
 
 export type GeneratedSlot = {
