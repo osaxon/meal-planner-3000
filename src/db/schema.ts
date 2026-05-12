@@ -41,6 +41,9 @@ export const meals = sqliteTable("meals", {
     enum: ["year_round", "spring_summer", "autumn_winter", "festive", "bbq"],
   }).notNull(),
   producesLeftovers: integer("produces_leftovers", { mode: "boolean" }).notNull().default(false),
+  suitableFor: text("suitable_for", { enum: ["lunch", "dinner", "any"] })
+    .notNull()
+    .default("any"),
   createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
 });

@@ -74,6 +74,7 @@ function shuffle<T>(arr: T[]): T[] {
 function pickMeal(
   pool: MealWithCategory[],
   usedIds: Set<number>,
+  mealTime: "lunch" | "dinner",
   meatCount: number,
   maxMeat: number,
   fishCount: number,
@@ -84,9 +85,22 @@ function pickMeal(
       (m) =>
         !usedIds.has(m.id) &&
         (m.diet !== "meat" || meatCount < maxMeat) &&
-        (m.diet !== "fish" || fishCount < maxFish),
+        (m.diet !== "fish" || fishCount < maxFish) &&
+        (m.suitableFor === "any" || m.suitableFor === mealTime),
     ) ?? null
   );
+}
+
+// ── Date helpers ─────────────────────────────────────────────────────────────
+
+function isoDateKey(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function nextCalendarDayKey(date: Date): string {
+  const next = new Date(date);
+  next.setUTCDate(next.getUTCDate() + 1);
+  return isoDateKey(next);
 }
 
 // ── Core algorithm ────────────────────────────────────────────────────────────
@@ -133,13 +147,13 @@ export class SchedulerService {
       const slot = result[i]!;
       if (slot.type !== "empty") continue; // already assigned as leftover
 
-      // Try to pick an eligible, unused meal
-      let meal = pickMeal(pool, usedIds, meatCount, maxMeat, fishCount, maxFish);
+      // Try to pick an eligible, unused meal that suits this slot's meal time
+      let meal = pickMeal(pool, usedIds, slot.mealTime, meatCount, maxMeat, fishCount, maxFish);
 
       // If all meals are used, reset uniqueness and try again (handles small pools)
       if (!meal && usedIds.size > 0) {
         usedIds.clear();
-        meal = pickMeal(pool, usedIds, meatCount, maxMeat, fishCount, maxFish);
+        meal = pickMeal(pool, usedIds, slot.mealTime, meatCount, maxMeat, fishCount, maxFish);
       }
 
       if (!meal) continue; // diet quotas exhausted — leave empty
@@ -168,8 +182,26 @@ export class SchedulerService {
     return result;
   }
 
-  // Prefer i+2 over i+1 to leave a gap between cook and leftovers
   private findLeftoverSlot(result: GeneratedSlot[], fromIndex: number): number {
+    const source = result[fromIndex]!;
+
+    // For dinner slots: prefer next calendar day's lunch, then next calendar day's dinner.
+    // Leftover eligibility is not constrained by the source meal's suitableFor (ADR 0002).
+    if (source.mealTime === "dinner") {
+      const nextDayKey = nextCalendarDayKey(source.date);
+      for (const targetTime of ["lunch", "dinner"] as const) {
+        const idx = result.findIndex(
+          (s, i) =>
+            i > fromIndex &&
+            s.type === "empty" &&
+            s.mealTime === targetTime &&
+            isoDateKey(s.date) === nextDayKey,
+        );
+        if (idx !== -1) return idx;
+      }
+    }
+
+    // Fallback: prefer i+2 over i+1
     for (const offset of [2, 1]) {
       const idx = fromIndex + offset;
       if (idx < result.length && result[idx]!.type === "empty") return idx;

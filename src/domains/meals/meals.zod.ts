@@ -34,6 +34,12 @@ export type Ingredient = z.infer<typeof ingredientSelectSchema>;
 export type IngredientInsert = z.infer<typeof ingredientInsertSchema>;
 export type IngredientUpdate = z.infer<typeof ingredientUpdateSchema>;
 
+export const SUITABLE_FOR_LABELS: Record<Meal["suitableFor"], string> = {
+  lunch: "Lunch only",
+  dinner: "Dinner only",
+  any: "Lunch or dinner",
+};
+
 export const DIET_LABELS: Record<Meal["diet"], string> = {
   meat: "Meat",
   fish: "Fish",

@@ -48,6 +48,7 @@ export class ScheduleService {
         diet: meals.diet,
         season: meals.season,
         producesLeftovers: meals.producesLeftovers,
+        suitableFor: meals.suitableFor,
         createdAt: meals.createdAt,
         updatedAt: meals.updatedAt,
       })

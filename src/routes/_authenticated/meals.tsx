@@ -1,12 +1,7 @@
-import { useSuspenseQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
-import { orpc, client } from "#/orpc/client";
 import { Button } from "#/components/ui/button";
+import { Checkbox } from "#/components/ui/checkbox";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
-import { Checkbox } from "#/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -17,18 +12,23 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
 } from "#/components/ui/sheet";
-import { DIET_LABELS, SEASON_LABELS } from "#/domains/meals/meals.zod";
 import type {
-  Meal,
-  MealWithCategory,
-  MealInsert,
   Ingredient,
   IngredientInsert,
+  Meal,
+  MealInsert,
+  MealWithCategory,
 } from "#/domains/meals/meals.zod";
+import { DIET_LABELS, SEASON_LABELS, SUITABLE_FOR_LABELS } from "#/domains/meals/meals.zod";
+import { client, orpc } from "#/orpc/client";
+import { useForm } from "@tanstack/react-form";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/meals")({
   loader: ({ context }) =>
@@ -46,7 +46,9 @@ type SheetState = { mode: "create" } | { mode: "edit"; meal: MealWithCategory };
 function useInvalidateMeals() {
   const queryClient = useQueryClient();
   return () =>
-    void queryClient.invalidateQueries({ queryKey: orpc.meals.list.queryOptions().queryKey });
+    void queryClient.invalidateQueries({
+      queryKey: orpc.meals.list.queryOptions().queryKey,
+    });
 }
 
 // ── Meal form ─────────────────────────────────────────────────────────────────
@@ -82,11 +84,13 @@ function MealForm({
         e.stopPropagation();
         void form.handleSubmit();
       }}
-      className="flex flex-col gap-5 mt-4"
+      className="flex flex-col gap-5 mt-4 p-4"
     >
       <form.Field
         name="name"
-        validators={{ onChange: ({ value }) => (!value.trim() ? "Name is required" : undefined) }}
+        validators={{
+          onChange: ({ value }) => (!value.trim() ? "Name is required" : undefined),
+        }}
       >
         {(field) => (
           <div className="grid gap-1.5">
@@ -107,7 +111,9 @@ function MealForm({
 
       <form.Field
         name="categoryId"
-        validators={{ onChange: ({ value }) => (!value ? "Category is required" : undefined) }}
+        validators={{
+          onChange: ({ value }) => (!value ? "Category is required" : undefined),
+        }}
       >
         {(field) => (
           <div className="grid gap-1.5">
@@ -136,7 +142,9 @@ function MealForm({
 
       <form.Field
         name="diet"
-        validators={{ onChange: ({ value }) => (!value ? "Diet is required" : undefined) }}
+        validators={{
+          onChange: ({ value }) => (!value ? "Diet is required" : undefined),
+        }}
       >
         {(field) => (
           <div className="grid gap-1.5">
@@ -167,7 +175,9 @@ function MealForm({
 
       <form.Field
         name="season"
-        validators={{ onChange: ({ value }) => (!value ? "Season is required" : undefined) }}
+        validators={{
+          onChange: ({ value }) => (!value ? "Season is required" : undefined),
+        }}
       >
         {(field) => (
           <div className="grid gap-1.5">
@@ -192,6 +202,31 @@ function MealForm({
             {field.state.meta.errors[0] && (
               <span className="text-sm text-destructive">{field.state.meta.errors[0]}</span>
             )}
+          </div>
+        )}
+      </form.Field>
+
+      <form.Field name="suitableFor">
+        {(field) => (
+          <div className="grid gap-1.5">
+            <Label>Suitable for</Label>
+            <Select
+              value={field.state.value ?? "any"}
+              onValueChange={(v) => field.handleChange(v as MealInsert["suitableFor"])}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.entries(SUITABLE_FOR_LABELS) as [MealInsert["suitableFor"], string][]).map(
+                  ([value, label]) => (
+                    <SelectItem key={value} value={value ?? ""}>
+                      {label}
+                    </SelectItem>
+                  ),
+                )}
+              </SelectContent>
+            </Select>
           </div>
         )}
       </form.Field>
@@ -304,7 +339,9 @@ function IngredientRow({
         >
           <form.Field
             name="name"
-            validators={{ onChange: ({ value }) => (!value.trim() ? "Required" : undefined) }}
+            validators={{
+              onChange: ({ value }) => (!value.trim() ? "Required" : undefined),
+            }}
           >
             {(field) => (
               <Input
@@ -378,7 +415,9 @@ function IngredientRow({
 
 function IngredientsSection({ mealId }: { mealId: number }) {
   const queryClient = useQueryClient();
-  const ingredientsKey = orpc.meals.ingredients.list.queryOptions({ input: { mealId } }).queryKey;
+  const ingredientsKey = orpc.meals.ingredients.list.queryOptions({
+    input: { mealId },
+  }).queryKey;
 
   const { data: ingredients = [], isLoading } = useQuery(
     orpc.meals.ingredients.list.queryOptions({ input: { mealId } }),
@@ -407,7 +446,7 @@ function IngredientsSection({ mealId }: { mealId: number }) {
   });
 
   return (
-    <div className="mt-6 border-t pt-6">
+    <div className="mt-6 border-t p-4">
       <h3 className="text-sm font-semibold mb-3">Ingredients</h3>
 
       {isLoading ? (
@@ -438,7 +477,9 @@ function IngredientsSection({ mealId }: { mealId: number }) {
       >
         <form.Field
           name="name"
-          validators={{ onChange: ({ value }) => (!value.trim() ? "Required" : undefined) }}
+          validators={{
+            onChange: ({ value }) => (!value.trim() ? "Required" : undefined),
+          }}
         >
           {(field) => (
             <div className="grid gap-1 flex-1">
@@ -512,7 +553,7 @@ function TagEditor({ mealId, initialTags }: { mealId: number; initialTags: strin
   }
 
   return (
-    <div className="mt-6 border-t pt-6">
+    <div className="mt-6 border-t p-4">
       <h3 className="text-sm font-semibold mb-3">Tags</h3>
       <div className="flex flex-wrap gap-1.5 mb-3">
         {tags.length === 0 && <p className="text-sm text-muted-foreground">No tags yet.</p>}
@@ -560,13 +601,26 @@ type Filters = {
   categoryId: number | null;
   diet: Meal["diet"] | null;
   season: Meal["season"] | null;
+  suitableFor: Meal["suitableFor"] | null;
   tags: string[];
 };
 
-const EMPTY_FILTERS: Filters = { categoryId: null, diet: null, season: null, tags: [] };
+const EMPTY_FILTERS: Filters = {
+  categoryId: null,
+  diet: null,
+  season: null,
+  suitableFor: null,
+  tags: [],
+};
 
 function isActive(f: Filters) {
-  return f.categoryId !== null || f.diet !== null || f.season !== null || f.tags.length > 0;
+  return (
+    f.categoryId !== null ||
+    f.diet !== null ||
+    f.season !== null ||
+    f.suitableFor !== null ||
+    f.tags.length > 0
+  );
 }
 
 function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filters) => void }) {
@@ -636,6 +690,31 @@ function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filt
         </Select>
       </div>
 
+      <div className="w-36">
+        <Select
+          value={filters.suitableFor ?? ""}
+          onValueChange={(v) =>
+            onChange({
+              ...filters,
+              suitableFor: (v as Meal["suitableFor"]) || null,
+            })
+          }
+        >
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue placeholder="Suitable for" />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.entries(SUITABLE_FOR_LABELS) as [Meal["suitableFor"], string][]).map(
+              ([v, l]) => (
+                <SelectItem key={v} value={v}>
+                  {l}
+                </SelectItem>
+              ),
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -668,7 +747,12 @@ function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filt
           {tag}
           <button
             type="button"
-            onClick={() => onChange({ ...filters, tags: filters.tags.filter((t) => t !== tag) })}
+            onClick={() =>
+              onChange({
+                ...filters,
+                tags: filters.tags.filter((t) => t !== tag),
+              })
+            }
             className="text-muted-foreground hover:text-foreground"
           >
             ×
@@ -698,6 +782,7 @@ const CREATE_DEFAULTS: MealInsert = {
   diet: "meat",
   season: "year_round",
   producesLeftovers: false,
+  suitableFor: "any",
 };
 
 function MealsPage() {
@@ -712,6 +797,7 @@ function MealsPage() {
     if (filters.categoryId !== null && meal.categoryId !== filters.categoryId) return false;
     if (filters.diet !== null && meal.diet !== filters.diet) return false;
     if (filters.season !== null && meal.season !== filters.season) return false;
+    if (filters.suitableFor !== null && meal.suitableFor !== filters.suitableFor) return false;
     if (filters.tags.length > 0 && !filters.tags.every((t) => meal.tags.includes(t))) return false;
     return true;
   });
@@ -764,7 +850,8 @@ function MealsPage() {
                   <div className="min-w-0">
                     <p className="font-medium text-sm truncate">{meal.name}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {meal.categoryName} · {DIET_LABELS[meal.diet]} · {SEASON_LABELS[meal.season]}
+                      {meal.categoryName} · {DIET_LABELS[meal.diet]} · {SEASON_LABELS[meal.season]}{" "}
+                      · {SUITABLE_FOR_LABELS[meal.suitableFor]}
                       {meal.producesLeftovers && " · Leftovers"}
                     </p>
                     {meal.tags.length > 0 && (
@@ -829,10 +916,14 @@ function MealsPage() {
                   diet: sheetState.meal.diet,
                   season: sheetState.meal.season,
                   producesLeftovers: sheetState.meal.producesLeftovers,
+                  suitableFor: sheetState.meal.suitableFor,
                 }}
                 submitLabel="Save changes"
                 onSubmit={async (values) => {
-                  await updateMutation.mutateAsync({ id: sheetState.meal.id, input: values });
+                  await updateMutation.mutateAsync({
+                    id: sheetState.meal.id,
+                    input: values,
+                  });
                 }}
               />
               <TagEditor mealId={sheetState.meal.id} initialTags={sheetState.meal.tags} />

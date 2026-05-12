@@ -35,6 +35,7 @@ export function createTestDb() {
       diet TEXT NOT NULL,
       season TEXT NOT NULL,
       produces_leftovers INTEGER NOT NULL DEFAULT 0,
+      suitable_for TEXT NOT NULL DEFAULT 'any',
       created_at INTEGER DEFAULT (unixepoch()),
       updated_at INTEGER DEFAULT (unixepoch())
     );

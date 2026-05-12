@@ -24,12 +24,15 @@ type Diet = "meat" | "fish" | "vegetarian";
 type Season = "year_round" | "spring_summer" | "autumn_winter" | "festive" | "bbq";
 type Ingredient = { name: string; quantity?: number; unit?: string };
 
+type SuitableFor = "lunch" | "dinner" | "any";
+
 type MealSeed = {
   name: string;
   category: string;
   diet: Diet;
   season: Season;
   producesLeftovers: boolean;
+  suitableFor: SuitableFor;
   ingredients: Ingredient[];
 };
 
@@ -56,6 +59,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "year_round",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Beef mince", quantity: 500, unit: "g" },
       { name: "Spaghetti", quantity: 400, unit: "g" },
@@ -70,6 +74,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "year_round",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Spaghetti", quantity: 300, unit: "g" },
       { name: "Pancetta", quantity: 150, unit: "g" },
@@ -83,6 +88,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "spring_summer",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Chicken breast", quantity: 2 },
       { name: "Pasta", quantity: 300, unit: "g" },
@@ -96,6 +102,7 @@ const MEALS: MealSeed[] = [
     diet: "vegetarian",
     season: "year_round",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Penne", quantity: 300, unit: "g" },
       { name: "Tinned tomatoes", quantity: 1, unit: "tin" },
@@ -109,6 +116,7 @@ const MEALS: MealSeed[] = [
     diet: "fish",
     season: "year_round",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Pasta", quantity: 400, unit: "g" },
       { name: "Tinned tuna", quantity: 2, unit: "tins" },
@@ -123,6 +131,7 @@ const MEALS: MealSeed[] = [
     diet: "vegetarian",
     season: "year_round",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Lasagne sheets", quantity: 12 },
       { name: "Courgette", quantity: 2 },
@@ -138,6 +147,7 @@ const MEALS: MealSeed[] = [
     diet: "fish",
     season: "spring_summer",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Linguine", quantity: 300, unit: "g" },
       { name: "White crab meat", quantity: 200, unit: "g" },
@@ -152,6 +162,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "autumn_winter",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Italian sausages", quantity: 6 },
       { name: "Rigatoni", quantity: 300, unit: "g" },
@@ -167,6 +178,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "year_round",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Chicken breast", quantity: 600, unit: "g" },
       { name: "Tikka masala paste", quantity: 4, unit: "tbsp" },
@@ -182,6 +194,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "year_round",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Chicken thigh", quantity: 500, unit: "g" },
       { name: "Thai green curry paste", quantity: 3, unit: "tbsp" },
@@ -196,6 +209,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "autumn_winter",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Lamb shoulder", quantity: 800, unit: "g" },
       { name: "Rogan josh paste", quantity: 4, unit: "tbsp" },
@@ -210,6 +224,7 @@ const MEALS: MealSeed[] = [
     diet: "vegetarian",
     season: "year_round",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Red lentils", quantity: 250, unit: "g" },
       { name: "Tinned chickpeas", quantity: 1, unit: "tin" },
@@ -225,6 +240,7 @@ const MEALS: MealSeed[] = [
     diet: "fish",
     season: "year_round",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Raw king prawns", quantity: 400, unit: "g" },
       { name: "Madras paste", quantity: 3, unit: "tbsp" },
@@ -239,6 +255,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "year_round",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Chicken breast", quantity: 600, unit: "g" },
       { name: "Butter chicken sauce", quantity: 1, unit: "jar" },
@@ -252,6 +269,7 @@ const MEALS: MealSeed[] = [
     diet: "fish",
     season: "year_round",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Raw king prawns", quantity: 400, unit: "g" },
       { name: "Jalfrezi paste", quantity: 3, unit: "tbsp" },
@@ -266,6 +284,7 @@ const MEALS: MealSeed[] = [
     diet: "vegetarian",
     season: "autumn_winter",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Aubergine", quantity: 2 },
       { name: "Red lentils", quantity: 200, unit: "g" },
@@ -282,6 +301,7 @@ const MEALS: MealSeed[] = [
     diet: "vegetarian",
     season: "spring_summer",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Tinned tomatoes", quantity: 3, unit: "tins" },
       { name: "Vegetable stock", quantity: 500, unit: "ml" },
@@ -296,6 +316,7 @@ const MEALS: MealSeed[] = [
     diet: "vegetarian",
     season: "autumn_winter",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Leeks", quantity: 3 },
       { name: "Potatoes", quantity: 500, unit: "g" },
@@ -309,6 +330,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "autumn_winter",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Chicken thigh", quantity: 4 },
       { name: "Egg noodles", quantity: 150, unit: "g" },
@@ -323,6 +345,7 @@ const MEALS: MealSeed[] = [
     diet: "vegetarian",
     season: "autumn_winter",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Onion", quantity: 6 },
       { name: "Beef stock", quantity: 1, unit: "litre" },
@@ -337,6 +360,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "spring_summer",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Frozen peas", quantity: 500, unit: "g" },
       { name: "Ham hock", quantity: 1 },
@@ -351,6 +375,7 @@ const MEALS: MealSeed[] = [
     diet: "vegetarian",
     season: "autumn_winter",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Butternut squash", quantity: 1 },
       { name: "Vegetable stock", quantity: 800, unit: "ml" },
@@ -367,6 +392,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "spring_summer",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Chicken breast", quantity: 2 },
       { name: "Romaine lettuce", quantity: 1 },
@@ -381,6 +407,7 @@ const MEALS: MealSeed[] = [
     diet: "fish",
     season: "spring_summer",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Tinned tuna", quantity: 2, unit: "tins" },
       { name: "Eggs", quantity: 4 },
@@ -395,6 +422,7 @@ const MEALS: MealSeed[] = [
     diet: "vegetarian",
     season: "spring_summer",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Feta", quantity: 200, unit: "g" },
       { name: "Cucumber", quantity: 1 },
@@ -409,6 +437,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "spring_summer",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Chicken breast", quantity: 2 },
       { name: "Avocado", quantity: 2 },
@@ -423,6 +452,7 @@ const MEALS: MealSeed[] = [
     diet: "fish",
     season: "spring_summer",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Smoked salmon", quantity: 200, unit: "g" },
       { name: "Mixed leaves", quantity: 1, unit: "bag" },
@@ -437,6 +467,7 @@ const MEALS: MealSeed[] = [
     diet: "vegetarian",
     season: "spring_summer",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Halloumi", quantity: 250, unit: "g" },
       { name: "Courgette", quantity: 2 },
@@ -452,6 +483,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "year_round",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Beef sirloin", quantity: 400, unit: "g" },
       { name: "Broccoli", quantity: 300, unit: "g" },
@@ -466,6 +498,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "year_round",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Chicken breast", quantity: 400, unit: "g" },
       { name: "Egg noodles", quantity: 300, unit: "g" },
@@ -480,6 +513,7 @@ const MEALS: MealSeed[] = [
     diet: "fish",
     season: "year_round",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Raw king prawns", quantity: 400, unit: "g" },
       { name: "Bok choy", quantity: 3 },
@@ -494,6 +528,7 @@ const MEALS: MealSeed[] = [
     diet: "vegetarian",
     season: "year_round",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Firm tofu", quantity: 400, unit: "g" },
       { name: "Mixed vegetables", quantity: 400, unit: "g" },
@@ -508,6 +543,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "year_round",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Rice noodles", quantity: 250, unit: "g" },
       { name: "Chicken breast", quantity: 300, unit: "g" },
@@ -524,6 +560,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "autumn_winter",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Whole chicken", quantity: 1.8, unit: "kg" },
       { name: "Potatoes", quantity: 1, unit: "kg" },
@@ -538,6 +575,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "festive",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Leg of lamb", quantity: 2, unit: "kg" },
       { name: "Garlic", quantity: 6, unit: "cloves" },
@@ -551,6 +589,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "autumn_winter",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Pork shoulder", quantity: 2, unit: "kg" },
       { name: "Apple cider", quantity: 300, unit: "ml" },
@@ -564,6 +603,7 @@ const MEALS: MealSeed[] = [
     diet: "vegetarian",
     season: "festive",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Mixed nuts", quantity: 300, unit: "g" },
       { name: "Breadcrumbs", quantity: 100, unit: "g" },
@@ -578,6 +618,7 @@ const MEALS: MealSeed[] = [
     diet: "fish",
     season: "spring_summer",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Salmon fillet", quantity: 4 },
       { name: "Lemon", quantity: 2 },
@@ -593,6 +634,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "autumn_winter",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Lamb mince", quantity: 500, unit: "g" },
       { name: "Potatoes", quantity: 900, unit: "g" },
@@ -607,6 +649,7 @@ const MEALS: MealSeed[] = [
     diet: "fish",
     season: "autumn_winter",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Salmon fillet", quantity: 300, unit: "g" },
       { name: "Smoked haddock", quantity: 300, unit: "g" },
@@ -621,6 +664,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "autumn_winter",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Chicken thigh", quantity: 600, unit: "g" },
       { name: "Leeks", quantity: 3 },
@@ -634,6 +678,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "autumn_winter",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Lamb mince", quantity: 500, unit: "g" },
       { name: "Aubergine", quantity: 3 },
@@ -648,6 +693,7 @@ const MEALS: MealSeed[] = [
     diet: "vegetarian",
     season: "spring_summer",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Spinach", quantity: 500, unit: "g" },
       { name: "Feta", quantity: 300, unit: "g" },
@@ -662,6 +708,7 @@ const MEALS: MealSeed[] = [
     diet: "fish",
     season: "year_round",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Smoked haddock", quantity: 400, unit: "g" },
       { name: "Potatoes", quantity: 500, unit: "g" },
@@ -677,6 +724,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "bbq",
     producesLeftovers: true,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Pork ribs", quantity: 1.5, unit: "kg" },
       { name: "BBQ sauce", quantity: 1, unit: "bottle" },
@@ -689,6 +737,7 @@ const MEALS: MealSeed[] = [
     diet: "fish",
     season: "spring_summer",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Sea bass fillets", quantity: 4 },
       { name: "Lemon", quantity: 2 },
@@ -702,6 +751,7 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "bbq",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Chicken thigh", quantity: 600, unit: "g" },
       { name: "Pitta bread", quantity: 4 },
@@ -716,6 +766,7 @@ const MEALS: MealSeed[] = [
     diet: "vegetarian",
     season: "bbq",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Halloumi", quantity: 500, unit: "g" },
       { name: "Courgette", quantity: 2 },
@@ -729,6 +780,7 @@ const MEALS: MealSeed[] = [
     diet: "fish",
     season: "spring_summer",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Tuna steaks", quantity: 4 },
       { name: "Soy sauce", quantity: 3, unit: "tbsp" },
@@ -742,12 +794,88 @@ const MEALS: MealSeed[] = [
     diet: "meat",
     season: "bbq",
     producesLeftovers: false,
+    suitableFor: "dinner",
     ingredients: [
       { name: "Lamb mince", quantity: 500, unit: "g" },
       { name: "Onion", quantity: 1 },
       { name: "Garlic", quantity: 3, unit: "cloves" },
       { name: "Pitta bread", quantity: 4 },
       { name: "Tzatziki", quantity: 1, unit: "tub" },
+    ],
+  },
+
+  // ── Lunch-specific ────────────────────────────────────────────────────────
+  {
+    name: "Tuna Niçoise Bowl",
+    category: "Salad",
+    diet: "fish",
+    season: "spring_summer",
+    producesLeftovers: false,
+    suitableFor: "lunch",
+    ingredients: [
+      { name: "Tinned tuna", quantity: 2, unit: "tins" },
+      { name: "Eggs", quantity: 2 },
+      { name: "Green beans", quantity: 100, unit: "g" },
+      { name: "Cherry tomatoes", quantity: 150, unit: "g" },
+      { name: "Black olives", quantity: 50, unit: "g" },
+    ],
+  },
+  {
+    name: "BLT Club Sandwich",
+    category: "Grilled & BBQ",
+    diet: "meat",
+    season: "year_round",
+    producesLeftovers: false,
+    suitableFor: "lunch",
+    ingredients: [
+      { name: "Back bacon", quantity: 6, unit: "rashers" },
+      { name: "Bread", quantity: 1, unit: "loaf" },
+      { name: "Lettuce", quantity: 1 },
+      { name: "Tomatoes", quantity: 3 },
+      { name: "Mayonnaise", quantity: 3, unit: "tbsp" },
+    ],
+  },
+  {
+    name: "Caprese Salad",
+    category: "Salad",
+    diet: "vegetarian",
+    season: "spring_summer",
+    producesLeftovers: false,
+    suitableFor: "lunch",
+    ingredients: [
+      { name: "Mozzarella", quantity: 250, unit: "g" },
+      { name: "Tomatoes", quantity: 4 },
+      { name: "Fresh basil", quantity: 1, unit: "bunch" },
+      { name: "Olive oil", quantity: 3, unit: "tbsp" },
+    ],
+  },
+  {
+    name: "Prawn & Avocado Wrap",
+    category: "Grilled & BBQ",
+    diet: "fish",
+    season: "spring_summer",
+    producesLeftovers: false,
+    suitableFor: "lunch",
+    ingredients: [
+      { name: "Cooked king prawns", quantity: 200, unit: "g" },
+      { name: "Avocado", quantity: 1 },
+      { name: "Flour tortillas", quantity: 2 },
+      { name: "Lemon", quantity: 1 },
+      { name: "Mixed leaves", quantity: 1, unit: "bag" },
+    ],
+  },
+  {
+    name: "Mushroom Omelette",
+    category: "Pie & Bake",
+    diet: "vegetarian",
+    season: "year_round",
+    producesLeftovers: false,
+    suitableFor: "lunch",
+    ingredients: [
+      { name: "Eggs", quantity: 3 },
+      { name: "Mushrooms", quantity: 150, unit: "g" },
+      { name: "Butter", quantity: 20, unit: "g" },
+      { name: "Cheddar", quantity: 40, unit: "g" },
     ],
   },
 ];
@@ -804,6 +932,10 @@ async function main() {
     if (existing) {
       mealId = existing.id;
       mealsSkipped++;
+      // Always sync suitableFor in case the script is re-run after this column was added
+      if (existing.suitableFor !== seed.suitableFor) {
+        await db.update(meals).set({ suitableFor: seed.suitableFor }).where(eq(meals.id, mealId));
+      }
     } else {
       const [created] = await db
         .insert(meals)
@@ -814,6 +946,7 @@ async function main() {
           diet: seed.diet,
           season: seed.season,
           producesLeftovers: seed.producesLeftovers,
+          suitableFor: seed.suitableFor,
         })
         .returning();
       mealId = created!.id;

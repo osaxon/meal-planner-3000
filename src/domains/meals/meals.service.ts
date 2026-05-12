@@ -40,6 +40,7 @@ export class MealService {
         diet: meals.diet,
         season: meals.season,
         producesLeftovers: meals.producesLeftovers,
+        suitableFor: meals.suitableFor,
         createdAt: meals.createdAt,
         updatedAt: meals.updatedAt,
       })
@@ -81,6 +82,7 @@ export class MealService {
         diet: meals.diet,
         season: meals.season,
         producesLeftovers: meals.producesLeftovers,
+        suitableFor: meals.suitableFor,
         createdAt: meals.createdAt,
         updatedAt: meals.updatedAt,
       })
@@ -110,7 +112,7 @@ export class MealService {
       .values({ ...input, userId })
       .returning();
     this.events.addDetail("meals.created", { id: row!.id, name: row!.name });
-    return ok({ ...row!, categoryName: category.name, tags: [] });
+    return ok({ ...row!, categoryName: category.name, tags: [], suitableFor: row!.suitableFor });
   }
 
   async update(

@@ -8,7 +8,11 @@ The owning entity for all data in the system — Meals, Schedules, and Preferenc
 
 ### Meal
 
-A known recipe belonging to a Household's Meal Pool. A Meal has a name, a Category, and metadata (diet, season, producesLeftovers, tags) and a list of Ingredients. Diet is one of three values: `meat`, `fish`, or `vegetarian`.
+A known recipe belonging to a Household's Meal Pool. A Meal has a name, a Category, and metadata (diet, season, producesLeftovers, suitableFor, tags) and a list of Ingredients. Diet is one of three values: `meat`, `fish`, or `vegetarian`.
+
+### Meal Suitability
+
+A property on a Meal (`suitableFor`) indicating which meal times it is appropriate to **freshly cook**: `lunch`, `dinner`, or `any`. The Scheduler only places a Meal as a **Filled Slot** whose meal time matches the Meal's suitability. Suitability does not restrict Leftover Slots — leftovers of any Meal are eligible for any available Slot (lunch or dinner), since eating leftovers is not the same as freshly preparing the Meal. The default value for existing Meals is `any`.
 
 ### Tag
 
@@ -53,7 +57,7 @@ Quota-based rules applied when generating a Schedule to ensure variety. Stored a
 
 ### Leftover
 
-A Slot whose content is the leftovers of a Meal cooked in another Slot within the same Schedule. When the Scheduler assigns a Meal with `producesLeftovers: true`, it must also assign a Leftover Slot to one of the next 1–2 available slots.
+A Slot whose content is the leftovers of a Meal cooked in another Slot within the same Schedule. When the Scheduler assigns a Meal with `producesLeftovers: true` to a **dinner** Slot, it targets the next calendar day's **lunch** Slot first, then the next calendar day's **dinner** Slot. Falls back to the existing 1–2 position logic if neither next-day Slot is available. Leftover Slots are not constrained by the source Meal's `suitableFor` value — a dinner-only Meal can have its leftovers placed in a lunch Slot. The user can always swap the Leftover Slot manually after generation.
 
 ### Shopping List
 
