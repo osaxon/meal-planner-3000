@@ -1,5 +1,6 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { meals, categories, mealIngredients, mealTags } from "#/db/schema";
+import { queryMealsWithTags } from "./meals.queries";
 import { noopCollector } from "#/lib/wide-event";
 import { ok, err } from "#/lib/result";
 import type { AppDb } from "#/db/factory";
@@ -30,69 +31,12 @@ export class MealService {
   }
 
   async list(userId: string): Promise<MealWithCategory[]> {
-    const rows = await this.db
-      .select({
-        id: meals.id,
-        userId: meals.userId,
-        name: meals.name,
-        categoryId: meals.categoryId,
-        categoryName: categories.name,
-        diet: meals.diet,
-        season: meals.season,
-        producesLeftovers: meals.producesLeftovers,
-        suitableFor: meals.suitableFor,
-        createdAt: meals.createdAt,
-        updatedAt: meals.updatedAt,
-      })
-      .from(meals)
-      .innerJoin(categories, eq(meals.categoryId, categories.id))
-      .where(eq(meals.userId, userId))
-      .orderBy(meals.name);
-
-    if (rows.length === 0) return [];
-
-    const tagRows = await this.db
-      .select()
-      .from(mealTags)
-      .where(
-        inArray(
-          mealTags.mealId,
-          rows.map((r) => r.id),
-        ),
-      );
-
-    const tagsByMealId = new Map<number, string[]>();
-    for (const t of tagRows) {
-      const list = tagsByMealId.get(t.mealId) ?? [];
-      list.push(t.tag);
-      tagsByMealId.set(t.mealId, list);
-    }
-
-    return rows.map((r) => ({ ...r, tags: tagsByMealId.get(r.id) ?? [] }));
+    return queryMealsWithTags(this.db, userId);
   }
 
   async findById(id: number, userId: string): Promise<MealWithCategory | null> {
-    const [row] = await this.db
-      .select({
-        id: meals.id,
-        userId: meals.userId,
-        name: meals.name,
-        categoryId: meals.categoryId,
-        categoryName: categories.name,
-        diet: meals.diet,
-        season: meals.season,
-        producesLeftovers: meals.producesLeftovers,
-        suitableFor: meals.suitableFor,
-        createdAt: meals.createdAt,
-        updatedAt: meals.updatedAt,
-      })
-      .from(meals)
-      .innerJoin(categories, eq(meals.categoryId, categories.id))
-      .where(and(eq(meals.id, id), eq(meals.userId, userId)));
-    if (!row) return null;
-
-    const tagRows = await this.db.select().from(mealTags).where(eq(mealTags.mealId, id));
-    return { ...row, tags: tagRows.map((t) => t.tag) };
+    const [row] = await queryMealsWithTags(this.db, userId, { mealId: id });
+    return row ?? null;
   }
 
   async create(

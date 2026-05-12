@@ -2,13 +2,11 @@ import { and, eq, inArray } from "drizzle-orm";
 import {
   schedules,
   slots,
-  meals,
-  categories,
-  mealTags,
   householdPreferences,
   mealIngredients,
   shoppingListChecks,
 } from "#/db/schema";
+import { queryMealsWithTags } from "#/domains/meals/meals.queries";
 import { noopCollector } from "#/lib/wide-event";
 import { SchedulerService } from "./scheduler.service";
 import { slotConfigSchema, defaultSlotConfig } from "#/domains/preferences/preferences.zod";
@@ -38,45 +36,7 @@ export class ScheduleService {
 
   async generate(userId: string, input: GenerateScheduleInput): Promise<ScheduleWithSlots> {
     // 1. Fetch meal pool with tags
-    const mealRows = await this.db
-      .select({
-        id: meals.id,
-        userId: meals.userId,
-        name: meals.name,
-        categoryId: meals.categoryId,
-        categoryName: categories.name,
-        diet: meals.diet,
-        season: meals.season,
-        producesLeftovers: meals.producesLeftovers,
-        suitableFor: meals.suitableFor,
-        createdAt: meals.createdAt,
-        updatedAt: meals.updatedAt,
-      })
-      .from(meals)
-      .innerJoin(categories, eq(meals.categoryId, categories.id))
-      .where(eq(meals.userId, userId));
-
-    const tagRows =
-      mealRows.length > 0
-        ? await this.db
-            .select()
-            .from(mealTags)
-            .where(
-              inArray(
-                mealTags.mealId,
-                mealRows.map((m) => m.id),
-              ),
-            )
-        : [];
-
-    const tagsByMealId = new Map<number, string[]>();
-    for (const t of tagRows) {
-      const list = tagsByMealId.get(t.mealId) ?? [];
-      list.push(t.tag);
-      tagsByMealId.set(t.mealId, list);
-    }
-
-    const mealPool = mealRows.map((m) => ({ ...m, tags: tagsByMealId.get(m.id) ?? [] }));
+    const mealPool = await queryMealsWithTags(this.db, userId);
 
     // 2. Fetch previous schedule's filled slot meal IDs
     const [prevSchedule] = await this.db
