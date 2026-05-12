@@ -8,6 +8,8 @@ import {
 } from "#/db/schema";
 import { queryMealsWithTags } from "#/domains/meals/meals.queries";
 import { aggregateIngredients } from "./shopping-list.aggregator";
+import { promoteAndInsertSchedule } from "./schedule-lifecycle";
+import { resolveLeftoverReferences } from "./leftover-resolver";
 import { noopCollector } from "#/lib/wide-event";
 import { SchedulerService } from "./scheduler.service";
 import { slotConfigSchema, defaultSlotConfig } from "#/domains/preferences/preferences.zod";
@@ -94,32 +96,13 @@ export class ScheduleService {
       .from(schedules)
       .where(and(eq(schedules.userId, userId), eq(schedules.status, "active")));
 
-    // Discard old previous (cascade deletes its slots)
-    if (prevSchedule) {
-      await this.db.delete(schedules).where(eq(schedules.id, prevSchedule.id));
-    }
-
-    // Promote active → previous
-    if (existingActive) {
-      await this.db
-        .update(schedules)
-        .set({ status: "previous" })
-        .where(eq(schedules.id, existingActive.id));
-    }
-
-    // Insert new active schedule
-    const [newSchedule] = await this.db
-      .insert(schedules)
-      .values({
-        userId,
-        status: "active",
-        startDate: input.startDate,
-        durationWeeks: input.durationWeeks,
-        maxMeatMealsOverride: input.maxMeatMealsOverride ?? null,
-        maxFishMealsOverride: input.maxFishMealsOverride ?? null,
-        maxLeftoverMealsOverride: input.maxLeftoverMealsOverride ?? null,
-      })
-      .returning();
+    const newSchedule = await promoteAndInsertSchedule({
+      db: this.db,
+      userId,
+      prevScheduleId: prevSchedule?.id ?? null,
+      existingActiveId: existingActive?.id ?? null,
+      newScheduleValues: { userId, ...input },
+    });
 
     // Insert all slots (leftover sourceSlotId = null initially)
     const insertedSlots =
@@ -128,7 +111,7 @@ export class ScheduleService {
             .insert(slots)
             .values(
               generatedSlots.map((s) => ({
-                scheduleId: newSchedule!.id,
+                scheduleId: newSchedule.id,
                 date: s.date,
                 mealTime: s.mealTime,
                 type: s.type,
@@ -139,20 +122,14 @@ export class ScheduleService {
             .returning()
         : [];
 
-    // Fix leftover sourceSlotId references
-    const leftoverUpdates = generatedSlots
-      .map((s, i) => ({ slot: s, idx: i }))
-      .filter(({ slot }) => slot.type === "leftover" && slot.sourceSlotIndex !== null);
+    // Resolve leftover sourceSlotId references and persist
+    const insertedIds = insertedSlots.map((s) => s.id);
+    const leftoverRefs = resolveLeftoverReferences(generatedSlots, insertedIds);
 
-    for (const { slot, idx } of leftoverUpdates) {
-      const sourceId = insertedSlots[slot.sourceSlotIndex!]?.id;
-      if (sourceId !== undefined) {
-        await this.db
-          .update(slots)
-          .set({ sourceSlotId: sourceId })
-          .where(eq(slots.id, insertedSlots[idx]!.id));
-        insertedSlots[idx] = { ...insertedSlots[idx]!, sourceSlotId: sourceId };
-      }
+    for (const { leftoverDbId, sourceSlotId } of leftoverRefs) {
+      await this.db.update(slots).set({ sourceSlotId }).where(eq(slots.id, leftoverDbId));
+      const idx = insertedSlots.findIndex((s) => s.id === leftoverDbId);
+      if (idx !== -1) insertedSlots[idx] = { ...insertedSlots[idx]!, sourceSlotId };
     }
 
     this.events.addDetail("schedule.created", {
