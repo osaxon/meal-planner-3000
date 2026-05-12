@@ -7,6 +7,7 @@ import {
   shoppingListChecks,
 } from "#/db/schema";
 import { queryMealsWithTags } from "#/domains/meals/meals.queries";
+import { aggregateIngredients } from "./shopping-list.aggregator";
 import { noopCollector } from "#/lib/wide-event";
 import { SchedulerService } from "./scheduler.service";
 import { slotConfigSchema, defaultSlotConfig } from "#/domains/preferences/preferences.zod";
@@ -225,16 +226,6 @@ export class ScheduleService {
       .from(mealIngredients)
       .where(inArray(mealIngredients.mealId, filledMealIds));
 
-    // Aggregate by normalised name
-    type Group = { name: string; items: (typeof mealIngredients.$inferSelect)[] };
-    const groups = new Map<string, Group>();
-    for (const ing of ingredients) {
-      const key = ing.name.toLowerCase().trim();
-      const g = groups.get(key) ?? { name: ing.name, items: [] };
-      g.items.push(ing);
-      groups.set(key, g);
-    }
-
     // Fetch check-off state for this schedule
     const checks = await this.db
       .select()
@@ -242,17 +233,7 @@ export class ScheduleService {
       .where(eq(shoppingListChecks.scheduleId, schedule.id));
     const checkedKeys = new Set(checks.filter((c) => c.checked).map((c) => c.ingredientKey));
 
-    return Array.from(groups.entries()).map(([key, { name, items }]) => {
-      const units = new Set(items.map((i) => i.unit ?? null));
-      const allSameUnit = units.size === 1;
-      const unit = allSameUnit ? ([...units][0] ?? null) : null;
-      const totalQuantity =
-        allSameUnit && items.every((i) => i.quantity !== null)
-          ? items.reduce((sum, i) => sum + (i.quantity ?? 0), 0)
-          : null;
-
-      return { ingredientKey: key, name, totalQuantity, unit, checked: checkedKeys.has(key) };
-    });
+    return aggregateIngredients(ingredients, checkedKeys);
   }
 
   async toggleShoppingItem(
