@@ -1,4 +1,5 @@
 import type { Day } from "#/domains/preferences/preferences.zod";
+import { toDateKey, nextCalendarDayKey } from "#/lib/date-utils";
 import type {
   MealWithCategory,
   SchedulerInput,
@@ -89,18 +90,6 @@ function pickMeal(
         (m.suitableFor === "any" || m.suitableFor === mealTime),
     ) ?? null
   );
-}
-
-// ── Date helpers ─────────────────────────────────────────────────────────────
-
-function isoDateKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-function nextCalendarDayKey(date: Date): string {
-  const next = new Date(date);
-  next.setUTCDate(next.getUTCDate() + 1);
-  return isoDateKey(next);
 }
 
 // ── Core algorithm ────────────────────────────────────────────────────────────
@@ -195,7 +184,7 @@ export class SchedulerService {
             i > fromIndex &&
             s.type === "empty" &&
             s.mealTime === targetTime &&
-            isoDateKey(s.date) === nextDayKey,
+            toDateKey(s.date) === nextDayKey,
         );
         if (idx !== -1) return idx;
       }

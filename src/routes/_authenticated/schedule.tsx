@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { orpc, client } from "#/orpc/client";
+import { addDays, toDateKey, formatDayHeader, indexSlotsByDateAndTime } from "#/lib/date-utils";
 import { Button } from "#/components/ui/button";
 import { Label } from "#/components/ui/label";
 import {
@@ -31,41 +32,6 @@ export const Route = createFileRoute("/_authenticated/schedule")({
     ]),
   component: SchedulePage,
 });
-
-// ── Date helpers (UTC throughout to avoid timezone surprises) ─────────────────
-
-function addDays(date: Date, n: number): Date {
-  const d = new Date(date);
-  d.setUTCDate(d.getUTCDate() + n);
-  return d;
-}
-
-function toDateKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
-const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTH_SHORT = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
-function formatDayHeader(date: Date) {
-  return {
-    weekday: DAY_SHORT[date.getUTCDay()]!,
-    label: `${date.getUTCDate()} ${MONTH_SHORT[date.getUTCMonth()]}`,
-  };
-}
 
 // ── Diet dot ─────────────────────────────────────────────────────────────────
 
@@ -182,9 +148,7 @@ function SlotEditorSheet({
   const currentMeal = currentMealId !== null ? mealById.get(currentMealId) : undefined;
   const mealTime = slot?.mealTime ?? "";
   const date = slot ? new Date(slot.date) : null;
-  const dateLabel = date
-    ? `${DAY_SHORT[date.getUTCDay()]}, ${date.getUTCDate()} ${MONTH_SHORT[date.getUTCMonth()]}`
-    : "";
+  const dateLabel = date ? `${formatDayHeader(date).weekday}, ${formatDayHeader(date).label}` : "";
 
   return (
     <Sheet open={slot !== null} onOpenChange={(open) => !open && onClose()}>
@@ -264,9 +228,8 @@ function ScheduleGrid({
   const weekStart = addDays(new Date(schedule.startDate), currentWeek * 7);
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  // Index slots by "dateKey|mealTime"
-  const slotIndex = new Map(
-    schedule.slots.map((s) => [`${toDateKey(new Date(s.date))}|${s.mealTime}`, s]),
+  const slotIndex = indexSlotsByDateAndTime(
+    schedule.slots.map((s) => ({ ...s, date: new Date(s.date) })),
   );
 
   return (
