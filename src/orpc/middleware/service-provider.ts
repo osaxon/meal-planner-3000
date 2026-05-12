@@ -5,6 +5,7 @@ import { CategoryService } from "#/domains/categories/categories.service";
 import { PreferencesService } from "#/domains/preferences/preferences.service";
 import { MealService } from "#/domains/meals/meals.service";
 import { ScheduleService } from "#/domains/schedule/schedule.service";
+import { RulesService } from "#/domains/rules/rules.service";
 import type { BaseWideEvent } from "..";
 
 /**
@@ -19,6 +20,7 @@ export const serviceProvider = os
     let _preferencesService: PreferencesService | undefined;
     let _mealService: MealService | undefined;
     let _scheduleService: ScheduleService | undefined;
+    let _rulesService: RulesService | undefined;
 
     return next({
       context: {
@@ -37,6 +39,9 @@ export const serviceProvider = os
         },
         get scheduleService() {
           return (_scheduleService ??= new ScheduleService(db, context.wideEvent));
+        },
+        get rulesService() {
+          return (_rulesService ??= new RulesService(db, context.wideEvent));
         },
       },
     });

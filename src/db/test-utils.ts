@@ -86,6 +86,16 @@ export function createTestDb() {
       updated_at INTEGER DEFAULT (unixepoch())
     );
 
+    CREATE TABLE scheduling_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+      subject_type TEXT NOT NULL,
+      category_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
+      subject_value TEXT,
+      operator TEXT NOT NULL,
+      value INTEGER NOT NULL
+    );
+
     CREATE TABLE shopping_list_checks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       schedule_id INTEGER NOT NULL REFERENCES schedules(id) ON DELETE CASCADE,

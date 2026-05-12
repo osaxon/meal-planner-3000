@@ -1,5 +1,13 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Tag, Settings, UtensilsCrossed, CalendarDays, ShoppingCart } from "lucide-react";
+import {
+  Home,
+  Tag,
+  Settings,
+  UtensilsCrossed,
+  CalendarDays,
+  ShoppingCart,
+  ListChecks,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -29,6 +37,7 @@ const navItems: NavItem[] = [
   { title: "Shopping list", href: "/shopping-list", icon: ShoppingCart },
   { title: "Meal Pool", href: "/meals", icon: UtensilsCrossed },
   { title: "Categories", href: "/categories", icon: Tag },
+  { title: "Rules", href: "/rules", icon: ListChecks },
   { title: "Preferences", href: "/preferences", icon: Settings },
 ];
 

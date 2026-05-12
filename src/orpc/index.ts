@@ -12,6 +12,7 @@ import type { CategoryService } from "#/domains/categories/categories.service";
 import type { PreferencesService } from "#/domains/preferences/preferences.service";
 import type { MealService } from "#/domains/meals/meals.service";
 import type { ScheduleService } from "#/domains/schedule/schedule.service";
+import type { RulesService } from "#/domains/rules/rules.service";
 import type { EventCollector } from "#/lib/wide-event";
 
 /** Base context provided by the RPC handler (includes logger from LoggingHandlerPlugin). */
@@ -32,6 +33,7 @@ export type ContextWithServices = BaseWideEvent & {
   preferencesService: PreferencesService;
   mealService: MealService;
   scheduleService: ScheduleService;
+  rulesService: RulesService;
 };
 
 /**

@@ -23,6 +23,12 @@ import {
   toggleShoppingItemContract,
 } from "#/domains/schedule/schedule.contract";
 import {
+  listRulesContract,
+  createRuleContract,
+  updateRuleContract,
+  deleteRuleContract,
+} from "#/domains/rules/rules.contract";
+import {
   listMealsContract,
   createMealContract,
   updateMealContract,
@@ -58,6 +64,12 @@ export const contract = {
     updateSlot: updateSlotContract,
     getShoppingList: getShoppingListContract,
     toggleShoppingItem: toggleShoppingItemContract,
+  },
+  rules: {
+    list: listRulesContract,
+    create: createRuleContract,
+    update: updateRuleContract,
+    delete: deleteRuleContract,
   },
   meals: {
     list: listMealsContract,

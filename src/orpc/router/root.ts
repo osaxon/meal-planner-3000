@@ -1,4 +1,5 @@
 import { pub } from "..";
+import { listRules, createRule, updateRule, deleteRule } from "#/domains/rules/rules.router";
 import {
   listFungi,
   findFungus,
@@ -39,6 +40,12 @@ const router = pub.router({
     create: createFungus,
     update: updateFungus,
     delete: deleteFungus,
+  },
+  rules: {
+    list: listRules,
+    create: createRule,
+    update: updateRule,
+    delete: deleteRule,
   },
   categories: {
     list: listCategories,

@@ -48,12 +48,26 @@ A per-day-of-week toggle for each meal time (Lunch, Dinner), defining which slot
 
 ### Scheduler Constraints
 
-Quota-based rules applied when generating a Schedule to ensure variety. Stored as global Household Preferences and can be overridden per Schedule. Constraints include:
+Quota-based rules applied when generating a Schedule to ensure variety. Stored as global Household Preferences and can be overridden per Schedule. Current fixed constraints:
 
 - **maxLeftoverMeals** — maximum number of Leftover Slots in the Schedule
 - **maxMeatMeals** — maximum number of meat-diet Meals
 - **maxFishMeals** — maximum number of fish-diet Meals
 - **noPreviousScheduleRepeats** — Meals that appeared in the previous Schedule are excluded from selection
+
+### Scheduling Rule
+
+A user-defined selection constraint applied to every generated Schedule. Replaces the fixed `maxMeatMeals` and `maxFishMeals` constraints. Each Rule has:
+
+- **Subject** — a Category, a Tag, or a Diet value (`meat`, `fish`, or `vegetarian`)
+- **Operator** — `at most` or `at least` (best-effort — the Scheduler tries to honour `at least N` rules but silently undershoots rather than blocking generation if the Meal Pool is too small)
+- **Value** — a non-negative integer (number of Meals per Schedule)
+
+Rules are global — stored as a collection owned by the Household and applied to every generated Schedule. Multiple Rules per subject are allowed, enabling range constraints (e.g. "at most 4 AND at least 1 curry"). Category-based Rules are deleted automatically when the referenced Category is deleted (cascade).
+
+The Rules UI warns (but does not block) when two Rules on the same subject are logically contradictory (e.g. "at most 1 curry" and "at least 3 curry").
+
+On migration, existing `maxMeatMeals` and `maxFishMeals` values are converted to pre-populated Rules. Their per-schedule override fields (`maxMeatMealsOverride`, `maxFishMealsOverride`) are removed from the Schedule record and the generate form. `maxLeftoverMeals` remains a fixed setting (it controls leftover slot behaviour, not meal selection).
 
 ### Leftover
 

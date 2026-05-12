@@ -105,6 +105,20 @@ export const householdPreferences = sqliteTable("household_preferences", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
 });
 
+export const schedulingRules = sqliteTable("scheduling_rules", {
+  id: integer({ mode: "number" }).primaryKey({ autoIncrement: true }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  subjectType: text("subject_type", { enum: ["category", "tag", "diet"] }).notNull(),
+  // Set for category rules; cascade-deletes the rule when the category is deleted
+  categoryId: integer("category_id").references(() => categories.id, { onDelete: "cascade" }),
+  // Set for tag and diet rules; null for category rules
+  subjectValue: text("subject_value"),
+  operator: text("operator", { enum: ["at_most", "at_least"] }).notNull(),
+  value: integer({ mode: "number" }).notNull(),
+});
+
 export const shoppingListChecks = sqliteTable(
   "shopping_list_checks",
   {
