@@ -6,8 +6,6 @@ type NewScheduleValues = {
   userId: string;
   startDate: Date;
   durationWeeks: number;
-  maxMeatMealsOverride?: number | null;
-  maxFishMealsOverride?: number | null;
   maxLeftoverMealsOverride?: number | null;
 };
 
@@ -53,8 +51,6 @@ export async function promoteAndInsertSchedule(
       status: "active",
       startDate: newScheduleValues.startDate,
       durationWeeks: newScheduleValues.durationWeeks,
-      maxMeatMealsOverride: newScheduleValues.maxMeatMealsOverride ?? null,
-      maxFishMealsOverride: newScheduleValues.maxFishMealsOverride ?? null,
       maxLeftoverMealsOverride: newScheduleValues.maxLeftoverMealsOverride ?? null,
     })
     .returning();

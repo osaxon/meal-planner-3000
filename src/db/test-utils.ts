@@ -60,8 +60,6 @@ export function createTestDb() {
       status TEXT NOT NULL,
       start_date INTEGER NOT NULL,
       duration_weeks INTEGER NOT NULL,
-      max_meat_meals_override INTEGER,
-      max_fish_meals_override INTEGER,
       max_leftover_meals_override INTEGER,
       created_at INTEGER DEFAULT (unixepoch())
     );
@@ -81,8 +79,6 @@ export function createTestDb() {
       user_id TEXT NOT NULL UNIQUE REFERENCES user(id) ON DELETE CASCADE,
       slot_config TEXT NOT NULL DEFAULT '{}',
       max_leftover_meals INTEGER NOT NULL DEFAULT 2,
-      max_meat_meals INTEGER NOT NULL DEFAULT 4,
-      max_fish_meals INTEGER NOT NULL DEFAULT 2,
       updated_at INTEGER DEFAULT (unixepoch())
     );
 

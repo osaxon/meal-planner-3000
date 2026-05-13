@@ -74,8 +74,6 @@ export const schedules = sqliteTable("schedules", {
   status: text({ enum: ["active", "previous"] }).notNull(),
   startDate: integer("start_date", { mode: "timestamp" }).notNull(),
   durationWeeks: integer("duration_weeks", { mode: "number" }).notNull(),
-  maxMeatMealsOverride: integer("max_meat_meals_override", { mode: "number" }),
-  maxFishMealsOverride: integer("max_fish_meals_override", { mode: "number" }),
   maxLeftoverMealsOverride: integer("max_leftover_meals_override", { mode: "number" }),
   createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
 });
@@ -100,8 +98,6 @@ export const householdPreferences = sqliteTable("household_preferences", {
     .references(() => user.id, { onDelete: "cascade" }),
   slotConfig: text("slot_config").notNull().default("{}"),
   maxLeftoverMeals: integer("max_leftover_meals", { mode: "number" }).notNull().default(2),
-  maxMeatMeals: integer("max_meat_meals", { mode: "number" }).notNull().default(4),
-  maxFishMeals: integer("max_fish_meals", { mode: "number" }).notNull().default(2),
   updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
 });
 

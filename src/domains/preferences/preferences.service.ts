@@ -36,8 +36,6 @@ export class PreferencesService {
 
     const merged: Preferences = {
       slotConfig: input.slotConfig ?? current.slotConfig,
-      maxMeatMeals: input.maxMeatMeals ?? current.maxMeatMeals,
-      maxFishMeals: input.maxFishMeals ?? current.maxFishMeals,
       maxLeftoverMeals: input.maxLeftoverMeals ?? current.maxLeftoverMeals,
     };
 
@@ -46,8 +44,6 @@ export class PreferencesService {
       .values({
         userId,
         slotConfig: JSON.stringify(merged.slotConfig),
-        maxMeatMeals: merged.maxMeatMeals,
-        maxFishMeals: merged.maxFishMeals,
         maxLeftoverMeals: merged.maxLeftoverMeals,
         updatedAt: new Date(),
       })
@@ -55,8 +51,6 @@ export class PreferencesService {
         target: householdPreferences.userId,
         set: {
           slotConfig: JSON.stringify(merged.slotConfig),
-          maxMeatMeals: merged.maxMeatMeals,
-          maxFishMeals: merged.maxFishMeals,
           maxLeftoverMeals: merged.maxLeftoverMeals,
           updatedAt: new Date(),
         },
@@ -71,8 +65,6 @@ export class PreferencesService {
     const parsed = slotConfigSchema.safeParse(JSON.parse(row.slotConfig));
     return {
       slotConfig: parsed.success ? parsed.data : defaultSlotConfig,
-      maxMeatMeals: row.maxMeatMeals,
-      maxFishMeals: row.maxFishMeals,
       maxLeftoverMeals: row.maxLeftoverMeals,
     };
   }

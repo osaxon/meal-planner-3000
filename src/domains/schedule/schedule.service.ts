@@ -72,8 +72,6 @@ export class ScheduleService {
     const slotConfigParsed = slotConfigSchema.safeParse(JSON.parse(prefs!.slotConfig));
     const preferences = {
       slotConfig: slotConfigParsed.success ? slotConfigParsed.data : defaultSlotConfig,
-      maxMeatMeals: prefs!.maxMeatMeals,
-      maxFishMeals: prefs!.maxFishMeals,
       maxLeftoverMeals: prefs!.maxLeftoverMeals,
     };
 

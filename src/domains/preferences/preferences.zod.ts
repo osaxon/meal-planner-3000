@@ -32,8 +32,6 @@ export const defaultSlotConfig: SlotConfig = Object.fromEntries(
 
 export const preferencesSchema = z.object({
   slotConfig: slotConfigSchema,
-  maxMeatMeals: z.number().int().min(0),
-  maxFishMeals: z.number().int().min(0),
   maxLeftoverMeals: z.number().int().min(0),
 });
 

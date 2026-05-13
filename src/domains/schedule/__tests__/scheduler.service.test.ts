@@ -49,8 +49,6 @@ const NO_SLOTS: Preferences["slotConfig"] = {
 function makePrefs(overrides: Partial<Preferences> = {}): Preferences {
   return {
     slotConfig: ALL_DINNERS,
-    maxMeatMeals: 99, // kept for schema compatibility; Scheduler uses Rules instead
-    maxFishMeals: 99,
     maxLeftoverMeals: 99,
     ...overrides,
   };

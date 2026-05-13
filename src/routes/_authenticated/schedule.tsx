@@ -307,18 +307,12 @@ function GenerateForm({ onSuccess }: { onSuccess: () => void }) {
     defaultValues: {
       startDate: new Date().toISOString().slice(0, 10),
       durationWeeks: "1" as "1" | "2" | "4",
-      maxMeatMealsOverride: "",
-      maxFishMealsOverride: "",
       maxLeftoverMealsOverride: "",
     },
     onSubmit: async ({ value }) => {
       await mutation.mutateAsync({
         startDate: new Date(value.startDate),
         durationWeeks: Number(value.durationWeeks) as 1 | 2 | 4,
-        maxMeatMealsOverride:
-          value.maxMeatMealsOverride !== "" ? Number(value.maxMeatMealsOverride) : undefined,
-        maxFishMealsOverride:
-          value.maxFishMealsOverride !== "" ? Number(value.maxFishMealsOverride) : undefined,
         maxLeftoverMealsOverride:
           value.maxLeftoverMealsOverride !== ""
             ? Number(value.maxLeftoverMealsOverride)
@@ -384,29 +378,25 @@ function GenerateForm({ onSuccess }: { onSuccess: () => void }) {
           Override quotas (optional)
         </summary>
         <div className="mt-2 flex flex-wrap gap-3">
-          {(
-            [
-              { name: "maxMeatMealsOverride", label: "Max meat" },
-              { name: "maxFishMealsOverride", label: "Max fish" },
-              { name: "maxLeftoverMealsOverride", label: "Max leftovers" },
-            ] as const
-          ).map(({ name, label }) => (
-            <form.Field key={name} name={name}>
-              {(field) => (
-                <div className="grid gap-1">
-                  <Label className="text-xs">{label}</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    placeholder="Default"
-                    className="w-24 h-8 text-sm"
-                  />
-                </div>
-              )}
-            </form.Field>
-          ))}
+          {([{ name: "maxLeftoverMealsOverride", label: "Max leftovers" }] as const).map(
+            ({ name, label }) => (
+              <form.Field key={name} name={name}>
+                {(field) => (
+                  <div className="grid gap-1">
+                    <Label className="text-xs">{label}</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      placeholder="Default"
+                      className="w-24 h-8 text-sm"
+                    />
+                  </div>
+                )}
+              </form.Field>
+            ),
+          )}
         </div>
       </details>
 

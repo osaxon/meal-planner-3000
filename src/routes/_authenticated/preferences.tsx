@@ -99,11 +99,7 @@ function PreferencesPage() {
           <h2 className="text-base font-semibold mb-4">Scheduler constraints</h2>
           <div className="space-y-4 max-w-xs">
             {(
-              [
-                { name: "maxMeatMeals", label: "Max meat meals per schedule" },
-                { name: "maxFishMeals", label: "Max fish meals per schedule" },
-                { name: "maxLeftoverMeals", label: "Max leftover meals per schedule" },
-              ] as const
+              [{ name: "maxLeftoverMeals", label: "Max leftover meals per schedule" }] as const
             ).map(({ name, label }) => (
               <form.Field
                 key={name}

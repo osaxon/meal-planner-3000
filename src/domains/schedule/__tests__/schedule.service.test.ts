@@ -137,16 +137,14 @@ describe("generate", () => {
     }
   });
 
-  it("stores per-schedule override values on the schedule record", async () => {
+  it("stores maxLeftoverMealsOverride on the schedule record", async () => {
     await seedMeals(7);
     const result = await service.generate(TEST_USER.id, {
       ...BASE_INPUT,
-      maxMeatMealsOverride: 2,
-      maxFishMealsOverride: 1,
+      maxLeftoverMealsOverride: 5,
     });
 
-    expect(result.maxMeatMealsOverride).toBe(2);
-    expect(result.maxFishMealsOverride).toBe(1);
+    expect(result.maxLeftoverMealsOverride).toBe(5);
   });
 });
 

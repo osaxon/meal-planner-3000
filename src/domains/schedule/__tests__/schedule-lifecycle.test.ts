@@ -110,13 +110,10 @@ describe("promoteAndInsertSchedule", () => {
       existingActiveId: null,
       newScheduleValues: {
         ...BASE_VALUES,
-        maxMeatMealsOverride: 2,
-        maxFishMealsOverride: 1,
+        maxLeftoverMealsOverride: 3,
       },
     });
 
-    expect(result.maxMeatMealsOverride).toBe(2);
-    expect(result.maxFishMealsOverride).toBe(1);
-    expect(result.maxLeftoverMealsOverride).toBeNull();
+    expect(result.maxLeftoverMealsOverride).toBe(3);
   });
 });

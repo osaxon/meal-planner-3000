@@ -12,8 +12,6 @@ export const scheduleWithSlotsSchema = scheduleSelectSchema.extend({
 export const generateScheduleInputSchema = z.object({
   startDate: z.coerce.date(),
   durationWeeks: z.union([z.literal(1), z.literal(2), z.literal(4)]),
-  maxMeatMealsOverride: z.number().int().min(0).optional(),
-  maxFishMealsOverride: z.number().int().min(0).optional(),
   maxLeftoverMealsOverride: z.number().int().min(0).optional(),
 });
 

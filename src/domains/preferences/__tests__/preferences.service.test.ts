@@ -20,8 +20,6 @@ describe("get", () => {
     const prefs = await service.get(TEST_USER.id);
 
     expect(prefs.slotConfig).toEqual(defaultSlotConfig);
-    expect(prefs.maxMeatMeals).toBe(4);
-    expect(prefs.maxFishMeals).toBe(2);
     expect(prefs.maxLeftoverMeals).toBe(2);
   });
 
@@ -29,20 +27,15 @@ describe("get", () => {
     await service.get(TEST_USER.id);
     const prefs = await service.get(TEST_USER.id);
 
-    expect(prefs.maxMeatMeals).toBe(4);
+    expect(prefs.maxLeftoverMeals).toBe(2);
   });
 });
 
 describe("update", () => {
-  it("updates quota constraints", async () => {
-    const updated = await service.update(TEST_USER.id, {
-      maxMeatMeals: 3,
-      maxFishMeals: 1,
-    });
+  it("updates maxLeftoverMeals", async () => {
+    const updated = await service.update(TEST_USER.id, { maxLeftoverMeals: 5 });
 
-    expect(updated.maxMeatMeals).toBe(3);
-    expect(updated.maxFishMeals).toBe(1);
-    expect(updated.maxLeftoverMeals).toBe(2);
+    expect(updated.maxLeftoverMeals).toBe(5);
   });
 
   it("updates slot config", async () => {
@@ -60,15 +53,15 @@ describe("update", () => {
   });
 
   it("persists changes so a subsequent get returns the updated values", async () => {
-    await service.update(TEST_USER.id, { maxMeatMeals: 7 });
+    await service.update(TEST_USER.id, { maxLeftoverMeals: 7 });
     const prefs = await service.get(TEST_USER.id);
 
-    expect(prefs.maxMeatMeals).toBe(7);
+    expect(prefs.maxLeftoverMeals).toBe(7);
   });
 
   it("creates the preferences record if it does not exist yet", async () => {
-    const updated = await service.update(TEST_USER.id, { maxFishMeals: 3 });
+    const updated = await service.update(TEST_USER.id, { maxLeftoverMeals: 3 });
 
-    expect(updated.maxFishMeals).toBe(3);
+    expect(updated.maxLeftoverMeals).toBe(3);
   });
 });
