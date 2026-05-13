@@ -73,7 +73,13 @@ function shuffle<T>(arr: T[]): T[] {
   return out;
 }
 
-type RuleState = { rule: SchedulingRule; count: number };
+type RuleState = {
+  rule: SchedulingRule;
+  /** Global count — used by per_schedule rules and at_least rules. */
+  count: number;
+  /** Per-date count — used by per_day at_most rules. Keyed by "YYYY-MM-DD". */
+  countsByDate: Map<string, number>;
+};
 
 /** Returns true if the meal matches the Rule's subject. */
 function mealMatchesSubject(meal: MealWithCategory, rule: SchedulingRule): boolean {
@@ -83,12 +89,29 @@ function mealMatchesSubject(meal: MealWithCategory, rule: SchedulingRule): boole
   return false;
 }
 
-/** Returns true if placing this meal would exceed any `at_most` Rule. */
-function exceedsAtMost(meal: MealWithCategory, states: RuleState[]): boolean {
-  return states.some(
-    ({ rule, count }) =>
-      rule.operator === "at_most" && count >= rule.value && mealMatchesSubject(meal, rule),
-  );
+/**
+ * Returns true if placing this meal in the given slot would exceed any `at_most` Rule.
+ * Per-day rules check the count for the slot's calendar day; per-schedule rules check
+ * the global count.
+ */
+function exceedsAtMost(meal: MealWithCategory, states: RuleState[], slotDateKey: string): boolean {
+  return states.some(({ rule, count, countsByDate }) => {
+    if (rule.operator !== "at_most") return false;
+    if (!mealMatchesSubject(meal, rule)) return false;
+    if (rule.scope === "per_day") {
+      return (countsByDate.get(slotDateKey) ?? 0) >= rule.value;
+    }
+    return count >= rule.value;
+  });
+}
+
+/** Increment the appropriate counter for a Rule after a meal is placed. */
+function incrementRuleCount(state: RuleState, slotDateKey: string): void {
+  if (state.rule.scope === "per_day") {
+    state.countsByDate.set(slotDateKey, (state.countsByDate.get(slotDateKey) ?? 0) + 1);
+  } else {
+    state.count++;
+  }
 }
 
 /** Count remaining empty slots from index i onwards. */
@@ -112,13 +135,14 @@ function pickMeal(
   pool: MealWithCategory[],
   usedIds: Set<number>,
   mealTime: "lunch" | "dinner",
+  slotDateKey: string,
   states: RuleState[],
   restrictToRequired: boolean,
 ): MealWithCategory | null {
   const candidates = pool.filter(
     (m) =>
       !usedIds.has(m.id) &&
-      !exceedsAtMost(m, states) &&
+      !exceedsAtMost(m, states, slotDateKey) &&
       (m.suitableFor === "any" || m.suitableFor === mealTime),
   );
 
@@ -167,7 +191,11 @@ export class SchedulerService {
     if (eligibleMeals.length === 0) return result;
 
     // 5. Initialise Rule state counters
-    const ruleStates: RuleState[] = rules.map((rule) => ({ rule, count: 0 }));
+    const ruleStates: RuleState[] = rules.map((rule) => ({
+      rule,
+      count: 0,
+      countsByDate: new Map(),
+    }));
 
     // 6. Shuffle for variety, then fill slots
     const pool = shuffle(eligibleMeals);
@@ -178,17 +206,19 @@ export class SchedulerService {
       const slot = result[i]!;
       if (slot.type !== "empty") continue; // already assigned as leftover
 
+      const slotDateKey = toDateKey(slot.date);
+
       // Best-effort reservation: if remaining empty slots ≤ total still owed by
       // at_least rules, restrict picks to meals that help satisfy those rules.
       const needed = stillNeeded(ruleStates);
       const restrict = needed > 0 && remainingEmpty(result, i) <= needed;
 
-      let meal = pickMeal(pool, usedIds, slot.mealTime, ruleStates, restrict);
+      let meal = pickMeal(pool, usedIds, slot.mealTime, slotDateKey, ruleStates, restrict);
 
       // If all meals are used, reset uniqueness and try again (handles small pools)
       if (!meal && usedIds.size > 0) {
         usedIds.clear();
-        meal = pickMeal(pool, usedIds, slot.mealTime, ruleStates, restrict);
+        meal = pickMeal(pool, usedIds, slot.mealTime, slotDateKey, ruleStates, restrict);
       }
 
       if (!meal) continue; // all at_most rules exhausted — leave empty
@@ -197,7 +227,7 @@ export class SchedulerService {
       result[i] = { ...slot, type: "filled", mealId: meal.id };
       usedIds.add(meal.id);
       for (const state of ruleStates) {
-        if (mealMatchesSubject(meal, state.rule)) state.count++;
+        if (mealMatchesSubject(meal, state.rule)) incrementRuleCount(state, slotDateKey);
       }
 
       // Place a leftover slot if applicable

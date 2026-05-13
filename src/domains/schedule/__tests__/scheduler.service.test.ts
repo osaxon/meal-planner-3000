@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { SchedulerService, getEligibleSeasons } from "../scheduler.service";
+import { toDateKey } from "#/lib/date-utils";
 import type { MealWithCategory } from "#/domains/meals/meals.zod";
 import type { Preferences } from "#/domains/preferences/preferences.zod";
 import type { ScheduleConfig, GeneratedSlot, SchedulingRule } from "../scheduler.types";
@@ -716,5 +717,122 @@ describe("leftover targeting", () => {
         expect(leftoverIdx - sourceIdx).toBeLessThanOrEqual(2);
       }
     }
+  });
+});
+
+// ── Per-day Rule scope ────────────────────────────────────────────────────────
+
+function perDayRule(
+  subjectType: "diet" | "category" | "tag",
+  subjectValue: string | null,
+  categoryId: number | null,
+  value: number,
+): SchedulingRule {
+  return { subjectType, categoryId, subjectValue, operator: "at_most", value, scope: "per_day" };
+}
+
+describe("per-day Rule scope", () => {
+  it("prevents the same diet appearing at both lunch and dinner on the same calendar day", () => {
+    const fish = Array.from({ length: 7 }, (_, i) => makeMeal(i + 1, { diet: "fish" }));
+    const other = Array.from({ length: 7 }, (_, i) => makeMeal(i + 10, { diet: "meat" }));
+
+    const result = run([...fish, ...other], { slotConfig: ALL_LUNCHES_AND_DINNERS }, {}, [
+      perDayRule("diet", "fish", null, 1),
+    ]);
+
+    // For each calendar day, count fish filled slots — must be ≤ 1
+    const filledByDay = new Map<string, number>();
+    for (const slot of result) {
+      if (slot.type !== "filled") continue;
+      const meal = [...fish, ...other].find((m) => m.id === slot.mealId);
+      if (meal?.diet === "fish") {
+        const key = toDateKey(slot.date);
+        filledByDay.set(key, (filledByDay.get(key) ?? 0) + 1);
+      }
+    }
+    for (const count of filledByDay.values()) {
+      expect(count).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("prevents the same Category appearing at both lunch and dinner on the same calendar day", () => {
+    const curry = Array.from({ length: 7 }, (_, i) => makeMeal(i + 1, { categoryId: 42 }));
+    const other = Array.from({ length: 7 }, (_, i) => makeMeal(i + 10, { categoryId: 1 }));
+
+    const result = run([...curry, ...other], { slotConfig: ALL_LUNCHES_AND_DINNERS }, {}, [
+      perDayRule("category", null, 42, 1),
+    ]);
+
+    const curryByDay = new Map<string, number>();
+    for (const slot of result) {
+      if (slot.type !== "filled") continue;
+      if (curry.some((m) => m.id === slot.mealId)) {
+        const key = toDateKey(slot.date);
+        curryByDay.set(key, (curryByDay.get(key) ?? 0) + 1);
+      }
+    }
+    for (const count of curryByDay.values()) {
+      expect(count).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("allows the same subject on different calendar days", () => {
+    const fish = Array.from({ length: 7 }, (_, i) => makeMeal(i + 1, { diet: "fish" }));
+
+    const result = run(
+      fish,
+      { slotConfig: ALL_DINNERS }, // one slot per day — fish on different days is fine
+      { durationWeeks: 1 },
+      [perDayRule("diet", "fish", null, 1)],
+    );
+
+    const fishFilled = result.filter((s) => s.type === "filled");
+    // With one slot per day, all fish can be scheduled across different days
+    expect(fishFilled.length).toBeGreaterThan(0);
+  });
+
+  it("per_day and per_schedule rules on the same subject both apply independently", () => {
+    const fish = Array.from({ length: 10 }, (_, i) => makeMeal(i + 1, { diet: "fish" }));
+    const other = Array.from({ length: 5 }, (_, i) => makeMeal(i + 20, { diet: "meat" }));
+
+    const result = run(
+      [...fish, ...other],
+      { slotConfig: ALL_LUNCHES_AND_DINNERS },
+      { durationWeeks: 1 },
+      [
+        perDayRule("diet", "fish", null, 1), // at most 1 fish per day
+        dietRule("fish", "at_most", 3), // at most 3 fish per schedule
+      ],
+    );
+
+    const fishFilled = result.filter(
+      (s) => s.type === "filled" && fish.some((m) => m.id === s.mealId),
+    );
+
+    // Per-schedule cap: never more than 3
+    expect(fishFilled.length).toBeLessThanOrEqual(3);
+
+    // Per-day cap: never more than 1 fish per day
+    const fishByDay = new Map<string, number>();
+    for (const slot of fishFilled) {
+      const key = toDateKey(slot.date);
+      fishByDay.set(key, (fishByDay.get(key) ?? 0) + 1);
+    }
+    for (const count of fishByDay.values()) {
+      expect(count).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("per_day Rule with value 1 is a no-op on a dinner-only schedule (one slot per day)", () => {
+    const fish = Array.from({ length: 7 }, (_, i) => makeMeal(i + 1, { diet: "fish" }));
+
+    const withPerDay = run(fish, {}, {}, [perDayRule("diet", "fish", null, 1)]);
+    const noRule = run(fish, {}, {}, []);
+
+    // per_day value=1 adds no restriction when there's already only 1 slot per day;
+    // all 7 fish meals should be schedulable in both cases
+    expect(withPerDay.filter((s) => s.type === "filled").length).toBe(
+      noRule.filter((s) => s.type === "filled").length,
+    );
   });
 });
