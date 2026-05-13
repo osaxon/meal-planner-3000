@@ -105,7 +105,14 @@ function dietRule(
   operator: "at_most" | "at_least",
   value: number,
 ): SchedulingRule {
-  return { subjectType: "diet", categoryId: null, subjectValue: diet, operator, value };
+  return {
+    subjectType: "diet",
+    categoryId: null,
+    subjectValue: diet,
+    operator,
+    value,
+    scope: "per_schedule",
+  };
 }
 
 function categoryRule(
@@ -113,11 +120,25 @@ function categoryRule(
   operator: "at_most" | "at_least",
   value: number,
 ): SchedulingRule {
-  return { subjectType: "category", categoryId, subjectValue: null, operator, value };
+  return {
+    subjectType: "category",
+    categoryId,
+    subjectValue: null,
+    operator,
+    value,
+    scope: "per_schedule",
+  };
 }
 
 function tagRule(tag: string, operator: "at_most" | "at_least", value: number): SchedulingRule {
-  return { subjectType: "tag", categoryId: null, subjectValue: tag, operator, value };
+  return {
+    subjectType: "tag",
+    categoryId: null,
+    subjectValue: tag,
+    operator,
+    value,
+    scope: "per_schedule",
+  };
 }
 
 // ── Season detection ──────────────────────────────────────────────────────────

@@ -113,6 +113,9 @@ export const schedulingRules = sqliteTable("scheduling_rules", {
   subjectValue: text("subject_value"),
   operator: text("operator", { enum: ["at_most", "at_least"] }).notNull(),
   value: integer({ mode: "number" }).notNull(),
+  scope: text("scope", { enum: ["per_schedule", "per_day"] })
+    .notNull()
+    .default("per_schedule"),
 });
 
 export const shoppingListChecks = sqliteTable(

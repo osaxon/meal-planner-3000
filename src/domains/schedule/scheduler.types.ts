@@ -16,6 +16,7 @@ export type SchedulingRule = {
   subjectValue: string | null;
   operator: "at_most" | "at_least";
   value: number;
+  scope: "per_schedule" | "per_day";
 };
 
 export type SchedulerInput = {

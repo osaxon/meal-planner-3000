@@ -89,7 +89,8 @@ export function createTestDb() {
       category_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
       subject_value TEXT,
       operator TEXT NOT NULL,
-      value INTEGER NOT NULL
+      value INTEGER NOT NULL,
+      scope TEXT NOT NULL DEFAULT 'per_schedule'
     );
 
     CREATE TABLE shopping_list_checks (

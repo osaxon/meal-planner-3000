@@ -61,7 +61,8 @@ A user-defined selection constraint applied to every generated Schedule. Replace
 
 - **Subject** — a Category, a Tag, or a Diet value (`meat`, `fish`, or `vegetarian`)
 - **Operator** — `at most` or `at least` (best-effort — the Scheduler tries to honour `at least N` rules but silently undershoots rather than blocking generation if the Meal Pool is too small)
-- **Value** — a non-negative integer (number of Meals per Schedule)
+- **Value** — a non-negative integer
+- **Scope** — `per_schedule` (default) or `per_day`. Controls the time window within which Value is counted. Only `at_most` Rules support `per_day` scope; `at_least` Rules are always `per_schedule`. A `per_day` Rule with value 1 and subject `diet:fish` prevents fish appearing at both lunch and dinner on the same calendar day. When only one slot per day is enabled in Slot Configuration, `per_day` and `per_schedule` behave identically — this is acceptable and requires no UI warning.
 
 Rules are global — stored as a collection owned by the Household and applied to every generated Schedule. Multiple Rules per subject are allowed, enabling range constraints (e.g. "at most 4 AND at least 1 curry"). Category-based Rules are deleted automatically when the referenced Category is deleted (cascade).
 

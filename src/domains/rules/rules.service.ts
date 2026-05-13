@@ -76,6 +76,7 @@ export class RulesService {
         subjectValue: schedulingRules.subjectValue,
         operator: schedulingRules.operator,
         value: schedulingRules.value,
+        scope: schedulingRules.scope,
       })
       .from(schedulingRules)
       .leftJoin(categories, eq(schedulingRules.categoryId, categories.id))
@@ -112,6 +113,7 @@ export class RulesService {
           categoryId: input.categoryId,
           operator: input.operator,
           value: input.value,
+          scope: input.operator === "at_least" ? "per_schedule" : (input.scope ?? "per_schedule"),
         })
         .returning();
       this.events.addDetail("rules.created", { id: row!.id });
@@ -127,6 +129,7 @@ export class RulesService {
         subjectValue: input.subjectValue,
         operator: input.operator,
         value: input.value,
+        scope: input.operator === "at_least" ? "per_schedule" : (input.scope ?? "per_schedule"),
       })
       .returning();
     this.events.addDetail("rules.created", { id: row!.id });
@@ -140,6 +143,7 @@ export class RulesService {
       .set({
         ...(input.operator !== undefined && { operator: input.operator }),
         ...(input.value !== undefined && { value: input.value }),
+        ...(input.scope !== undefined && { scope: input.scope }),
       })
       .where(and(eq(schedulingRules.id, id), eq(schedulingRules.userId, userId)))
       .returning();

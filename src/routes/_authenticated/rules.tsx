@@ -20,7 +20,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "#/components/ui/sheet";
-import { OPERATOR_LABELS, DIET_SUBJECT_LABELS } from "#/domains/rules/rules.zod";
+import { OPERATOR_LABELS, SCOPE_LABELS, DIET_SUBJECT_LABELS } from "#/domains/rules/rules.zod";
 import type { RuleView, RuleInsert, RuleUpdate } from "#/domains/rules/rules.zod";
 
 export const Route = createFileRoute("/_authenticated/rules")({
@@ -43,13 +43,14 @@ function useInvalidateRules() {
 function ruleLabel(rule: RuleView, categories: { id: number; name: string }[]): string {
   const op = OPERATOR_LABELS[rule.operator];
   const count = rule.value === 1 ? "1 meal" : `${rule.value} meals`;
+  const suffix = rule.operator === "at_most" && rule.scope === "per_day" ? " per day" : "";
   if (rule.subjectType === "category") {
     const name =
       rule.categoryName ?? categories.find((c) => c.id === rule.categoryId)?.name ?? "Unknown";
-    return `${op} ${count} from ${name}`;
+    return `${op} ${count} from ${name}${suffix}`;
   }
-  if (rule.subjectType === "tag") return `${op} ${count} tagged "${rule.subjectValue}"`;
-  return `${op} ${count} (${DIET_SUBJECT_LABELS[rule.subjectValue ?? ""] ?? rule.subjectValue})`;
+  if (rule.subjectType === "tag") return `${op} ${count} tagged "${rule.subjectValue}"${suffix}`;
+  return `${op} ${count} (${DIET_SUBJECT_LABELS[rule.subjectValue ?? ""] ?? rule.subjectValue})${suffix}`;
 }
 
 // ── Rule form ─────────────────────────────────────────────────────────────────
@@ -60,6 +61,7 @@ type FormValues = {
   subjectValue: string;
   operator: "at_most" | "at_least";
   value: number;
+  scope: "per_schedule" | "per_day";
 };
 
 function RuleForm({
@@ -224,6 +226,37 @@ function RuleForm({
         )}
       </form.Field>
 
+      <form.Subscribe selector={(s) => s.values.operator}>
+        {(operator) =>
+          operator === "at_most" ? (
+            <form.Field name="scope">
+              {(field) => (
+                <div className="grid gap-1.5">
+                  <Label>Applies per</Label>
+                  <Select
+                    value={field.state.value}
+                    onValueChange={(v) => field.handleChange(v as FormValues["scope"])}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.entries(SCOPE_LABELS) as [FormValues["scope"], string][]).map(
+                        ([v, l]) => (
+                          <SelectItem key={v} value={v}>
+                            {l}
+                          </SelectItem>
+                        ),
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </form.Field>
+          ) : null
+        }
+      </form.Subscribe>
+
       <form.Field
         name="value"
         validators={{ onChange: ({ value }) => (value < 0 ? "Must be 0 or more" : undefined) }}
@@ -261,15 +294,18 @@ const CREATE_DEFAULTS: FormValues = {
   subjectValue: "",
   operator: "at_most",
   value: 3,
+  scope: "per_schedule",
 };
 
 function toInsertInput(values: FormValues): RuleInsert {
+  const scope = values.operator === "at_most" ? values.scope : "per_schedule";
   if (values.subjectType === "category") {
     return {
       subjectType: "category",
       categoryId: Number(values.categoryId),
       operator: values.operator,
       value: values.value,
+      scope,
     };
   }
   return {
@@ -277,6 +313,7 @@ function toInsertInput(values: FormValues): RuleInsert {
     subjectValue: values.subjectValue,
     operator: values.operator,
     value: values.value,
+    scope,
   } as RuleInsert;
 }
 
@@ -287,6 +324,7 @@ function toEditDefaults(rule: RuleView): FormValues {
     subjectValue: rule.subjectValue ?? "",
     operator: rule.operator,
     value: rule.value,
+    scope: rule.scope,
   };
 }
 
@@ -412,7 +450,11 @@ function RulesPage() {
               defaultValues={toEditDefaults(sheetState.rule)}
               submitLabel="Save changes"
               onSubmit={async (values) => {
-                const update: RuleUpdate = { operator: values.operator, value: values.value };
+                const update: RuleUpdate = {
+                  operator: values.operator,
+                  value: values.value,
+                  scope: values.operator === "at_most" ? values.scope : "per_schedule",
+                };
                 await client.rules.update({ id: sheetState.rule.id, ...update });
                 invalidate();
                 setSheetState(null);
