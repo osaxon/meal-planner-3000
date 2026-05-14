@@ -72,7 +72,7 @@ On migration, existing `maxMeatMeals` and `maxFishMeals` values are converted to
 
 ### Leftover
 
-A Slot whose content is the leftovers of a Meal cooked in another Slot within the same Schedule. When the Scheduler assigns a Meal with `producesLeftovers: true` to a **dinner** Slot, it targets the next calendar day's **lunch** Slot first, then the next calendar day's **dinner** Slot. Falls back to the existing 1–2 position logic if neither next-day Slot is available. Leftover Slots are not constrained by the source Meal's `suitableFor` value — a dinner-only Meal can have its leftovers placed in a lunch Slot. The user can always swap the Leftover Slot manually after generation.
+A Slot whose content is the leftovers of a Meal cooked in another Slot within the same Schedule. When the Scheduler assigns a Meal with `producesLeftovers: true` to a **dinner** Slot, it targets the next calendar day's **lunch** Slot first, then the next calendar day's **dinner** Slot. Falls back to the existing 1–2 position logic if neither next-day Slot is available. Leftover Slots are not constrained by the source Meal's `suitableFor` value — a dinner-only Meal can have its leftovers placed in a lunch Slot. Leftover Slots can only be created by the Scheduler — there is no manual path to designate a slot as a leftover post-generation. If the source slot's meal is swapped after generation, its dependent Leftover Slots are automatically cleared to Empty.
 
 ### Shopping List
 

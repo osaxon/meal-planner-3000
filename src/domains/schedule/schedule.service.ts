@@ -168,6 +168,13 @@ export class ScheduleService {
       .where(eq(slots.id, slotId))
       .returning();
 
+    // Orphan any leftover slots that derived from this slot — leftovers can only
+    // exist if the source meal is actually being cooked.
+    await this.db
+      .update(slots)
+      .set({ type: "empty", mealId: null, sourceSlotId: null })
+      .where(eq(slots.sourceSlotId, slotId));
+
     return ok(updated!);
   }
 
