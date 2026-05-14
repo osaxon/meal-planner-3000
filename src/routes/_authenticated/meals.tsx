@@ -1,3 +1,5 @@
+import { getMealColumns } from "#/components/meals/columns";
+import { DataTable } from "#/components/meals/data-table";
 import { Button } from "#/components/ui/button";
 import { Checkbox } from "#/components/ui/checkbox";
 import { Input } from "#/components/ui/input";
@@ -23,12 +25,22 @@ import type {
   MealInsert,
   MealWithCategory,
 } from "#/domains/meals/meals.zod";
-import { DIET_LABELS, SEASON_LABELS, SUITABLE_FOR_LABELS } from "#/domains/meals/meals.zod";
+import {
+  DIET_LABELS,
+  SEASON_LABELS,
+  SUITABLE_FOR_LABELS,
+} from "#/domains/meals/meals.zod";
 import { client, orpc } from "#/orpc/client";
 import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import type { RowSelectionState } from "@tanstack/react-table";
+import { useMemo, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/meals")({
   loader: ({ context }) =>
@@ -62,7 +74,9 @@ function MealForm({
   onSubmit: (values: MealInsert) => Promise<void>;
   submitLabel: string;
 }) {
-  const { data: categories } = useSuspenseQuery(orpc.categories.list.queryOptions());
+  const { data: categories } = useSuspenseQuery(
+    orpc.categories.list.queryOptions(),
+  );
   const [serverError, setServerError] = useState<string | null>(null);
 
   const form = useForm({
@@ -72,7 +86,9 @@ function MealForm({
       try {
         await onSubmit(value);
       } catch (e) {
-        setServerError((e as { message?: string }).message ?? "Something went wrong");
+        setServerError(
+          (e as { message?: string }).message ?? "Something went wrong",
+        );
       }
     },
   });
@@ -89,7 +105,8 @@ function MealForm({
       <form.Field
         name="name"
         validators={{
-          onChange: ({ value }) => (!value.trim() ? "Name is required" : undefined),
+          onChange: ({ value }) =>
+            !value.trim() ? "Name is required" : undefined,
         }}
       >
         {(field) => (
@@ -103,7 +120,9 @@ function MealForm({
               placeholder="e.g. Spaghetti Bolognese"
             />
             {field.state.meta.errors[0] && (
-              <span className="text-sm text-destructive">{field.state.meta.errors[0]}</span>
+              <span className="text-sm text-destructive">
+                {field.state.meta.errors[0]}
+              </span>
             )}
           </div>
         )}
@@ -112,7 +131,8 @@ function MealForm({
       <form.Field
         name="categoryId"
         validators={{
-          onChange: ({ value }) => (!value ? "Category is required" : undefined),
+          onChange: ({ value }) =>
+            !value ? "Category is required" : undefined,
         }}
       >
         {(field) => (
@@ -134,7 +154,9 @@ function MealForm({
               </SelectContent>
             </Select>
             {field.state.meta.errors[0] && (
-              <span className="text-sm text-destructive">{field.state.meta.errors[0]}</span>
+              <span className="text-sm text-destructive">
+                {field.state.meta.errors[0]}
+              </span>
             )}
           </div>
         )}
@@ -157,17 +179,19 @@ function MealForm({
                 <SelectValue placeholder="Select diet type" />
               </SelectTrigger>
               <SelectContent>
-                {(Object.entries(DIET_LABELS) as [MealInsert["diet"], string][]).map(
-                  ([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ),
-                )}
+                {(
+                  Object.entries(DIET_LABELS) as [MealInsert["diet"], string][]
+                ).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {field.state.meta.errors[0] && (
-              <span className="text-sm text-destructive">{field.state.meta.errors[0]}</span>
+              <span className="text-sm text-destructive">
+                {field.state.meta.errors[0]}
+              </span>
             )}
           </div>
         )}
@@ -184,23 +208,30 @@ function MealForm({
             <Label>Season</Label>
             <Select
               value={field.state.value ?? ""}
-              onValueChange={(v) => field.handleChange(v as MealInsert["season"])}
+              onValueChange={(v) =>
+                field.handleChange(v as MealInsert["season"])
+              }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select season" />
               </SelectTrigger>
               <SelectContent>
-                {(Object.entries(SEASON_LABELS) as [MealInsert["season"], string][]).map(
-                  ([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ),
-                )}
+                {(
+                  Object.entries(SEASON_LABELS) as [
+                    MealInsert["season"],
+                    string,
+                  ][]
+                ).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {field.state.meta.errors[0] && (
-              <span className="text-sm text-destructive">{field.state.meta.errors[0]}</span>
+              <span className="text-sm text-destructive">
+                {field.state.meta.errors[0]}
+              </span>
             )}
           </div>
         )}
@@ -212,19 +243,24 @@ function MealForm({
             <Label>Suitable for</Label>
             <Select
               value={field.state.value ?? "any"}
-              onValueChange={(v) => field.handleChange(v as MealInsert["suitableFor"])}
+              onValueChange={(v) =>
+                field.handleChange(v as MealInsert["suitableFor"])
+              }
             >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {(Object.entries(SUITABLE_FOR_LABELS) as [MealInsert["suitableFor"], string][]).map(
-                  ([value, label]) => (
-                    <SelectItem key={value} value={value ?? ""}>
-                      {label}
-                    </SelectItem>
-                  ),
-                )}
+                {(
+                  Object.entries(SUITABLE_FOR_LABELS) as [
+                    MealInsert["suitableFor"],
+                    string,
+                  ][]
+                ).map(([value, label]) => (
+                  <SelectItem key={value} value={value ?? ""}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -237,7 +273,9 @@ function MealForm({
             <Checkbox
               id="produces-leftovers"
               checked={field.state.value ?? false}
-              onCheckedChange={(checked) => field.handleChange(checked === true)}
+              onCheckedChange={(checked) =>
+                field.handleChange(checked === true)
+              }
             />
             <Label htmlFor="produces-leftovers">Produces leftovers</Label>
           </div>
@@ -246,7 +284,11 @@ function MealForm({
 
       {serverError && <p className="text-sm text-destructive">{serverError}</p>}
 
-      <Button type="submit" disabled={form.state.isSubmitting} className="self-start">
+      <Button
+        type="submit"
+        disabled={form.state.isSubmitting}
+        className="self-start"
+      >
         {submitLabel}
       </Button>
     </form>
@@ -255,7 +297,13 @@ function MealForm({
 
 // ── Delete confirmation ───────────────────────────────────────────────────────
 
-function DeleteConfirm({ meal, onDone }: { meal: MealWithCategory; onDone: () => void }) {
+function DeleteConfirm({
+  meal,
+  onDone,
+}: {
+  meal: MealWithCategory;
+  onDone: () => void;
+}) {
   const invalidate = useInvalidateMeals();
   const mutation = useMutation({
     mutationFn: () => client.meals.delete({ id: meal.id }),
@@ -281,7 +329,8 @@ function DeleteConfirm({ meal, onDone }: { meal: MealWithCategory; onDone: () =>
       </Button>
       {mutation.error && (
         <span className="text-sm text-destructive">
-          {(mutation.error as { message?: string }).message ?? "Failed to delete"}
+          {(mutation.error as { message?: string }).message ??
+            "Failed to delete"}
         </span>
       )}
     </div>
@@ -302,7 +351,8 @@ function IngredientRow({
   const [editing, setEditing] = useState(false);
 
   const deleteMutation = useMutation({
-    mutationFn: () => client.meals.ingredients.delete({ mealId, ingredientId: ingredient.id }),
+    mutationFn: () =>
+      client.meals.ingredients.delete({ mealId, ingredientId: ingredient.id }),
     onSuccess: onInvalidate,
   });
 
@@ -378,7 +428,12 @@ function IngredientRow({
           <Button type="submit" size="sm" disabled={form.state.isSubmitting}>
             Save
           </Button>
-          <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)}>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => setEditing(false)}
+          >
             Cancel
           </Button>
         </form>
@@ -397,7 +452,12 @@ function IngredientRow({
           </span>
         )}
       </span>
-      <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditing(true)}>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 px-2"
+        onClick={() => setEditing(true)}
+      >
         Edit
       </Button>
       <Button
@@ -528,13 +588,20 @@ function IngredientsSection({ mealId }: { mealId: number }) {
 
 // ── Tag editor ────────────────────────────────────────────────────────────────
 
-function TagEditor({ mealId, initialTags }: { mealId: number; initialTags: string[] }) {
+function TagEditor({
+  mealId,
+  initialTags,
+}: {
+  mealId: number;
+  initialTags: string[];
+}) {
   const invalidate = useInvalidateMeals();
   const [tags, setTagsLocal] = useState(initialTags);
   const [input, setInput] = useState("");
 
   const mutation = useMutation({
-    mutationFn: (newTags: string[]) => client.meals.setTags({ id: mealId, tags: newTags }),
+    mutationFn: (newTags: string[]) =>
+      client.meals.setTags({ id: mealId, tags: newTags }),
     onSuccess: (data) => {
       setTagsLocal(data);
       invalidate();
@@ -556,7 +623,9 @@ function TagEditor({ mealId, initialTags }: { mealId: number; initialTags: strin
     <div className="mt-6 border-t p-4">
       <h3 className="text-sm font-semibold mb-3">Tags</h3>
       <div className="flex flex-wrap gap-1.5 mb-3">
-        {tags.length === 0 && <p className="text-sm text-muted-foreground">No tags yet.</p>}
+        {tags.length === 0 && (
+          <p className="text-sm text-muted-foreground">No tags yet.</p>
+        )}
         {tags.map((tag) => (
           <span
             key={tag}
@@ -587,7 +656,11 @@ function TagEditor({ mealId, initialTags }: { mealId: number; initialTags: strin
           placeholder="e.g. quick, weeknight"
           className="h-8 text-sm"
         />
-        <Button type="submit" size="sm" disabled={!input.trim() || mutation.isPending}>
+        <Button
+          type="submit"
+          size="sm"
+          disabled={!input.trim() || mutation.isPending}
+        >
           Add
         </Button>
       </form>
@@ -623,8 +696,16 @@ function isActive(f: Filters) {
   );
 }
 
-function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filters) => void }) {
-  const { data: categories } = useSuspenseQuery(orpc.categories.list.queryOptions());
+function FilterBar({
+  filters,
+  onChange,
+}: {
+  filters: Filters;
+  onChange: (f: Filters) => void;
+}) {
+  const { data: categories } = useSuspenseQuery(
+    orpc.categories.list.queryOptions(),
+  );
   const [tagInput, setTagInput] = useState("");
 
   function addFilterTag(tag: string) {
@@ -639,7 +720,9 @@ function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filt
       <div className="w-36">
         <Select
           value={filters.categoryId != null ? String(filters.categoryId) : ""}
-          onValueChange={(v) => onChange({ ...filters, categoryId: v ? Number(v) : null })}
+          onValueChange={(v) =>
+            onChange({ ...filters, categoryId: v ? Number(v) : null })
+          }
         >
           <SelectTrigger className="h-8 text-xs">
             <SelectValue placeholder="Category" />
@@ -657,17 +740,21 @@ function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filt
       <div className="w-32">
         <Select
           value={filters.diet ?? ""}
-          onValueChange={(v) => onChange({ ...filters, diet: (v as Meal["diet"]) || null })}
+          onValueChange={(v) =>
+            onChange({ ...filters, diet: (v as Meal["diet"]) || null })
+          }
         >
           <SelectTrigger className="h-8 text-xs">
             <SelectValue placeholder="Diet" />
           </SelectTrigger>
           <SelectContent>
-            {(Object.entries(DIET_LABELS) as [Meal["diet"], string][]).map(([v, l]) => (
-              <SelectItem key={v} value={v}>
-                {l}
-              </SelectItem>
-            ))}
+            {(Object.entries(DIET_LABELS) as [Meal["diet"], string][]).map(
+              ([v, l]) => (
+                <SelectItem key={v} value={v}>
+                  {l}
+                </SelectItem>
+              ),
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -675,17 +762,21 @@ function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filt
       <div className="w-36">
         <Select
           value={filters.season ?? ""}
-          onValueChange={(v) => onChange({ ...filters, season: (v as Meal["season"]) || null })}
+          onValueChange={(v) =>
+            onChange({ ...filters, season: (v as Meal["season"]) || null })
+          }
         >
           <SelectTrigger className="h-8 text-xs">
             <SelectValue placeholder="Season" />
           </SelectTrigger>
           <SelectContent>
-            {(Object.entries(SEASON_LABELS) as [Meal["season"], string][]).map(([v, l]) => (
-              <SelectItem key={v} value={v}>
-                {l}
-              </SelectItem>
-            ))}
+            {(Object.entries(SEASON_LABELS) as [Meal["season"], string][]).map(
+              ([v, l]) => (
+                <SelectItem key={v} value={v}>
+                  {l}
+                </SelectItem>
+              ),
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -704,13 +795,16 @@ function FilterBar({ filters, onChange }: { filters: Filters; onChange: (f: Filt
             <SelectValue placeholder="Suitable for" />
           </SelectTrigger>
           <SelectContent>
-            {(Object.entries(SUITABLE_FOR_LABELS) as [Meal["suitableFor"], string][]).map(
-              ([v, l]) => (
-                <SelectItem key={v} value={v}>
-                  {l}
-                </SelectItem>
-              ),
-            )}
+            {(
+              Object.entries(SUITABLE_FOR_LABELS) as [
+                Meal["suitableFor"],
+                string,
+              ][]
+            ).map(([v, l]) => (
+              <SelectItem key={v} value={v}>
+                {l}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -793,12 +887,31 @@ function MealsPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
 
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+
+  const columns = useMemo(
+    () =>
+      getMealColumns({
+        onEdit: (meal) => setSheetState({ mode: "edit", meal }),
+      }),
+    [],
+  );
+
   const filteredMeals = mealList.filter((meal) => {
-    if (filters.categoryId !== null && meal.categoryId !== filters.categoryId) return false;
+    if (filters.categoryId !== null && meal.categoryId !== filters.categoryId)
+      return false;
     if (filters.diet !== null && meal.diet !== filters.diet) return false;
     if (filters.season !== null && meal.season !== filters.season) return false;
-    if (filters.suitableFor !== null && meal.suitableFor !== filters.suitableFor) return false;
-    if (filters.tags.length > 0 && !filters.tags.every((t) => meal.tags.includes(t))) return false;
+    if (
+      filters.suitableFor !== null &&
+      meal.suitableFor !== filters.suitableFor
+    )
+      return false;
+    if (
+      filters.tags.length > 0 &&
+      !filters.tags.every((t) => meal.tags.includes(t))
+    )
+      return false;
     return true;
   });
 
@@ -819,77 +932,71 @@ function MealsPage() {
     },
   });
 
+  const selectedIds = Object.keys(rowSelection).map(Number);
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: number[]) =>
+      Promise.all(ids.map((id) => client.meals.delete({ id }))),
+    onSuccess: () => {
+      invalidate();
+      setRowSelection({});
+    },
+  });
+
   return (
     <div className="max-w-3xl">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Meal Pool</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {mealList.length} {mealList.length === 1 ? "meal" : "meals"}
-          </p>
+        <h1 className="text-2xl font-semibold tracking-tight">Meal Pool</h1>
+        <div className="flex items-center gap-2">
+          {selectedIds.length > 0 && (
+            <Button
+              variant="destructive"
+              onClick={() => bulkDeleteMutation.mutate(selectedIds)}
+              disabled={bulkDeleteMutation.isPending}
+            >
+              Delete {selectedIds.length} meal
+              {selectedIds.length !== 1 ? "s" : ""}
+            </Button>
+          )}
+          <Button onClick={() => setSheetState({ mode: "create" })}>
+            Add meal
+          </Button>
         </div>
-        <Button onClick={() => setSheetState({ mode: "create" })}>Add meal</Button>
       </div>
-
-      <FilterBar filters={filters} onChange={setFilters} />
 
       {mealList.length === 0 ? (
         <p className="mt-10 text-sm text-muted-foreground">
           No meals yet. Add your first meal to get started.
         </p>
       ) : filteredMeals.length === 0 ? (
-        <p className="mt-10 text-sm text-muted-foreground">No meals match the current filters.</p>
+        <p className="mt-10 text-sm text-muted-foreground">
+          No meals match the current filters.
+        </p>
+      ) : deletingId ? (
+        <DeleteConfirm
+          meal={filteredMeals.find((m) => m.id === deletingId)!}
+          onDone={() => setDeletingId(null)}
+        />
       ) : (
-        <ul className="mt-4 space-y-2">
-          {filteredMeals.map((meal) => (
-            <li key={meal.id} className="rounded-md border px-4 py-3">
-              {deletingId === meal.id ? (
-                <DeleteConfirm meal={meal} onDone={() => setDeletingId(null)} />
-              ) : (
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm truncate">{meal.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {meal.categoryName} · {DIET_LABELS[meal.diet]} · {SEASON_LABELS[meal.season]}{" "}
-                      · {SUITABLE_FOR_LABELS[meal.suitableFor]}
-                      {meal.producesLeftovers && " · Leftovers"}
-                    </p>
-                    {meal.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {meal.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setSheetState({ mode: "edit", meal })}
-                    >
-                      Edit
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setDeletingId(meal.id)}>
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+        <DataTable
+          columns={columns}
+          data={filteredMeals}
+          searchColumn="name"
+          getRowId={(row) => String(row.id)}
+          rowSelection={rowSelection}
+          onRowSelection={setRowSelection}
+        />
       )}
 
-      <Sheet open={sheetState !== null} onOpenChange={(open) => !open && setSheetState(null)}>
+      <Sheet
+        open={sheetState !== null}
+        onOpenChange={(open) => !open && setSheetState(null)}
+      >
         <SheetContent className="overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{sheetState?.mode === "edit" ? "Edit meal" : "Add meal"}</SheetTitle>
+            <SheetTitle>
+              {sheetState?.mode === "edit" ? "Edit meal" : "Add meal"}
+            </SheetTitle>
             <SheetDescription>
               {sheetState?.mode === "edit"
                 ? "Update this meal's details."
@@ -926,7 +1033,10 @@ function MealsPage() {
                   });
                 }}
               />
-              <TagEditor mealId={sheetState.meal.id} initialTags={sheetState.meal.tags} />
+              <TagEditor
+                mealId={sheetState.meal.id}
+                initialTags={sheetState.meal.tags}
+              />
               <IngredientsSection mealId={sheetState.meal.id} />
             </>
           )}

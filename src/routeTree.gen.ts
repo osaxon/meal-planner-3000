@@ -8,289 +8,291 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root";
-import { Route as SignUpRouteImport } from "./routes/sign-up";
-import { Route as SignInRouteImport } from "./routes/sign-in";
-import { Route as AuthenticatedRouteImport } from "./routes/_authenticated";
-import { Route as AuthenticatedIndexRouteImport } from "./routes/_authenticated/index";
-import { Route as ApiSplatRouteImport } from "./routes/api.$";
-import { Route as AuthenticatedShoppingListRouteImport } from "./routes/_authenticated/shopping-list";
-import { Route as AuthenticatedScheduleRouteImport } from "./routes/_authenticated/schedule";
-import { Route as AuthenticatedRulesRouteImport } from "./routes/_authenticated/rules";
-import { Route as AuthenticatedPreferencesRouteImport } from "./routes/_authenticated/preferences";
-import { Route as AuthenticatedMealsRouteImport } from "./routes/_authenticated/meals";
-import { Route as AuthenticatedCategoriesRouteImport } from "./routes/_authenticated/categories";
-import { Route as ApiRpcSplatRouteImport } from "./routes/api.rpc.$";
-import { Route as ApiAuthSplatRouteImport } from "./routes/api/auth/$";
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as ApiSplatRouteImport } from './routes/api.$'
+import { Route as AuthenticatedShoppingListRouteImport } from './routes/_authenticated/shopping-list'
+import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
+import { Route as AuthenticatedRulesRouteImport } from './routes/_authenticated/rules'
+import { Route as AuthenticatedPreferencesRouteImport } from './routes/_authenticated/preferences'
+import { Route as AuthenticatedMealsRouteImport } from './routes/_authenticated/meals'
+import { Route as AuthenticatedCategoriesRouteImport } from './routes/_authenticated/categories'
+import { Route as ApiRpcSplatRouteImport } from './routes/api.rpc.$'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const SignUpRoute = SignUpRouteImport.update({
-  id: "/sign-up",
-  path: "/sign-up",
+  id: '/sign-up',
+  path: '/sign-up',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const SignInRoute = SignInRouteImport.update({
-  id: "/sign-in",
-  path: "/sign-in",
+  id: '/sign-in',
+  path: '/sign-in',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: "/_authenticated",
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => AuthenticatedRoute,
-} as any);
+} as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
-  id: "/api/$",
-  path: "/api/$",
+  id: '/api/$',
+  path: '/api/$',
   getParentRoute: () => rootRouteImport,
-} as any);
-const AuthenticatedShoppingListRoute = AuthenticatedShoppingListRouteImport.update({
-  id: "/shopping-list",
-  path: "/shopping-list",
-  getParentRoute: () => AuthenticatedRoute,
-} as any);
+} as any)
+const AuthenticatedShoppingListRoute =
+  AuthenticatedShoppingListRouteImport.update({
+    id: '/shopping-list',
+    path: '/shopping-list',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedScheduleRoute = AuthenticatedScheduleRouteImport.update({
-  id: "/schedule",
-  path: "/schedule",
+  id: '/schedule',
+  path: '/schedule',
   getParentRoute: () => AuthenticatedRoute,
-} as any);
+} as any)
 const AuthenticatedRulesRoute = AuthenticatedRulesRouteImport.update({
-  id: "/rules",
-  path: "/rules",
+  id: '/rules',
+  path: '/rules',
   getParentRoute: () => AuthenticatedRoute,
-} as any);
-const AuthenticatedPreferencesRoute = AuthenticatedPreferencesRouteImport.update({
-  id: "/preferences",
-  path: "/preferences",
-  getParentRoute: () => AuthenticatedRoute,
-} as any);
+} as any)
+const AuthenticatedPreferencesRoute =
+  AuthenticatedPreferencesRouteImport.update({
+    id: '/preferences',
+    path: '/preferences',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMealsRoute = AuthenticatedMealsRouteImport.update({
-  id: "/meals",
-  path: "/meals",
+  id: '/meals',
+  path: '/meals',
   getParentRoute: () => AuthenticatedRoute,
-} as any);
+} as any)
 const AuthenticatedCategoriesRoute = AuthenticatedCategoriesRouteImport.update({
-  id: "/categories",
-  path: "/categories",
+  id: '/categories',
+  path: '/categories',
   getParentRoute: () => AuthenticatedRoute,
-} as any);
+} as any)
 const ApiRpcSplatRoute = ApiRpcSplatRouteImport.update({
-  id: "/api/rpc/$",
-  path: "/api/rpc/$",
+  id: '/api/rpc/$',
+  path: '/api/rpc/$',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: "/api/auth/$",
-  path: "/api/auth/$",
+  id: '/api/auth/$',
+  path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
-} as any);
+} as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof AuthenticatedIndexRoute;
-  "/sign-in": typeof SignInRoute;
-  "/sign-up": typeof SignUpRoute;
-  "/categories": typeof AuthenticatedCategoriesRoute;
-  "/meals": typeof AuthenticatedMealsRoute;
-  "/preferences": typeof AuthenticatedPreferencesRoute;
-  "/rules": typeof AuthenticatedRulesRoute;
-  "/schedule": typeof AuthenticatedScheduleRoute;
-  "/shopping-list": typeof AuthenticatedShoppingListRoute;
-  "/api/$": typeof ApiSplatRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/api/rpc/$": typeof ApiRpcSplatRoute;
+  '/': typeof AuthenticatedIndexRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
+  '/categories': typeof AuthenticatedCategoriesRoute
+  '/meals': typeof AuthenticatedMealsRoute
+  '/preferences': typeof AuthenticatedPreferencesRoute
+  '/rules': typeof AuthenticatedRulesRoute
+  '/schedule': typeof AuthenticatedScheduleRoute
+  '/shopping-list': typeof AuthenticatedShoppingListRoute
+  '/api/$': typeof ApiSplatRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/rpc/$': typeof ApiRpcSplatRoute
 }
 export interface FileRoutesByTo {
-  "/sign-in": typeof SignInRoute;
-  "/sign-up": typeof SignUpRoute;
-  "/categories": typeof AuthenticatedCategoriesRoute;
-  "/meals": typeof AuthenticatedMealsRoute;
-  "/preferences": typeof AuthenticatedPreferencesRoute;
-  "/rules": typeof AuthenticatedRulesRoute;
-  "/schedule": typeof AuthenticatedScheduleRoute;
-  "/shopping-list": typeof AuthenticatedShoppingListRoute;
-  "/api/$": typeof ApiSplatRoute;
-  "/": typeof AuthenticatedIndexRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/api/rpc/$": typeof ApiRpcSplatRoute;
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
+  '/categories': typeof AuthenticatedCategoriesRoute
+  '/meals': typeof AuthenticatedMealsRoute
+  '/preferences': typeof AuthenticatedPreferencesRoute
+  '/rules': typeof AuthenticatedRulesRoute
+  '/schedule': typeof AuthenticatedScheduleRoute
+  '/shopping-list': typeof AuthenticatedShoppingListRoute
+  '/api/$': typeof ApiSplatRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/rpc/$': typeof ApiRpcSplatRoute
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport;
-  "/_authenticated": typeof AuthenticatedRouteWithChildren;
-  "/sign-in": typeof SignInRoute;
-  "/sign-up": typeof SignUpRoute;
-  "/_authenticated/categories": typeof AuthenticatedCategoriesRoute;
-  "/_authenticated/meals": typeof AuthenticatedMealsRoute;
-  "/_authenticated/preferences": typeof AuthenticatedPreferencesRoute;
-  "/_authenticated/rules": typeof AuthenticatedRulesRoute;
-  "/_authenticated/schedule": typeof AuthenticatedScheduleRoute;
-  "/_authenticated/shopping-list": typeof AuthenticatedShoppingListRoute;
-  "/api/$": typeof ApiSplatRoute;
-  "/_authenticated/": typeof AuthenticatedIndexRoute;
-  "/api/auth/$": typeof ApiAuthSplatRoute;
-  "/api/rpc/$": typeof ApiRpcSplatRoute;
+  __root__: typeof rootRouteImport
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
+  '/_authenticated/categories': typeof AuthenticatedCategoriesRoute
+  '/_authenticated/meals': typeof AuthenticatedMealsRoute
+  '/_authenticated/preferences': typeof AuthenticatedPreferencesRoute
+  '/_authenticated/rules': typeof AuthenticatedRulesRoute
+  '/_authenticated/schedule': typeof AuthenticatedScheduleRoute
+  '/_authenticated/shopping-list': typeof AuthenticatedShoppingListRoute
+  '/api/$': typeof ApiSplatRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/rpc/$': typeof ApiRpcSplatRoute
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
+  fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | "/"
-    | "/sign-in"
-    | "/sign-up"
-    | "/categories"
-    | "/meals"
-    | "/preferences"
-    | "/rules"
-    | "/schedule"
-    | "/shopping-list"
-    | "/api/$"
-    | "/api/auth/$"
-    | "/api/rpc/$";
-  fileRoutesByTo: FileRoutesByTo;
+    | '/'
+    | '/sign-in'
+    | '/sign-up'
+    | '/categories'
+    | '/meals'
+    | '/preferences'
+    | '/rules'
+    | '/schedule'
+    | '/shopping-list'
+    | '/api/$'
+    | '/api/auth/$'
+    | '/api/rpc/$'
+  fileRoutesByTo: FileRoutesByTo
   to:
-    | "/sign-in"
-    | "/sign-up"
-    | "/categories"
-    | "/meals"
-    | "/preferences"
-    | "/rules"
-    | "/schedule"
-    | "/shopping-list"
-    | "/api/$"
-    | "/"
-    | "/api/auth/$"
-    | "/api/rpc/$";
+    | '/sign-in'
+    | '/sign-up'
+    | '/categories'
+    | '/meals'
+    | '/preferences'
+    | '/rules'
+    | '/schedule'
+    | '/shopping-list'
+    | '/api/$'
+    | '/'
+    | '/api/auth/$'
+    | '/api/rpc/$'
   id:
-    | "__root__"
-    | "/_authenticated"
-    | "/sign-in"
-    | "/sign-up"
-    | "/_authenticated/categories"
-    | "/_authenticated/meals"
-    | "/_authenticated/preferences"
-    | "/_authenticated/rules"
-    | "/_authenticated/schedule"
-    | "/_authenticated/shopping-list"
-    | "/api/$"
-    | "/_authenticated/"
-    | "/api/auth/$"
-    | "/api/rpc/$";
-  fileRoutesById: FileRoutesById;
+    | '__root__'
+    | '/_authenticated'
+    | '/sign-in'
+    | '/sign-up'
+    | '/_authenticated/categories'
+    | '/_authenticated/meals'
+    | '/_authenticated/preferences'
+    | '/_authenticated/rules'
+    | '/_authenticated/schedule'
+    | '/_authenticated/shopping-list'
+    | '/api/$'
+    | '/_authenticated/'
+    | '/api/auth/$'
+    | '/api/rpc/$'
+  fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren;
-  SignInRoute: typeof SignInRoute;
-  SignUpRoute: typeof SignUpRoute;
-  ApiSplatRoute: typeof ApiSplatRoute;
-  ApiAuthSplatRoute: typeof ApiAuthSplatRoute;
-  ApiRpcSplatRoute: typeof ApiRpcSplatRoute;
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  SignInRoute: typeof SignInRoute
+  SignUpRoute: typeof SignUpRoute
+  ApiSplatRoute: typeof ApiSplatRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiRpcSplatRoute: typeof ApiRpcSplatRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/sign-up": {
-      id: "/sign-up";
-      path: "/sign-up";
-      fullPath: "/sign-up";
-      preLoaderRoute: typeof SignUpRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/sign-in": {
-      id: "/sign-in";
-      path: "/sign-in";
-      fullPath: "/sign-in";
-      preLoaderRoute: typeof SignInRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/_authenticated": {
-      id: "/_authenticated";
-      path: "";
-      fullPath: "/";
-      preLoaderRoute: typeof AuthenticatedRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/_authenticated/": {
-      id: "/_authenticated/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof AuthenticatedIndexRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
-    "/api/$": {
-      id: "/api/$";
-      path: "/api/$";
-      fullPath: "/api/$";
-      preLoaderRoute: typeof ApiSplatRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/_authenticated/shopping-list": {
-      id: "/_authenticated/shopping-list";
-      path: "/shopping-list";
-      fullPath: "/shopping-list";
-      preLoaderRoute: typeof AuthenticatedShoppingListRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
-    "/_authenticated/schedule": {
-      id: "/_authenticated/schedule";
-      path: "/schedule";
-      fullPath: "/schedule";
-      preLoaderRoute: typeof AuthenticatedScheduleRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
-    "/_authenticated/rules": {
-      id: "/_authenticated/rules";
-      path: "/rules";
-      fullPath: "/rules";
-      preLoaderRoute: typeof AuthenticatedRulesRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
-    "/_authenticated/preferences": {
-      id: "/_authenticated/preferences";
-      path: "/preferences";
-      fullPath: "/preferences";
-      preLoaderRoute: typeof AuthenticatedPreferencesRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
-    "/_authenticated/meals": {
-      id: "/_authenticated/meals";
-      path: "/meals";
-      fullPath: "/meals";
-      preLoaderRoute: typeof AuthenticatedMealsRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
-    "/_authenticated/categories": {
-      id: "/_authenticated/categories";
-      path: "/categories";
-      fullPath: "/categories";
-      preLoaderRoute: typeof AuthenticatedCategoriesRouteImport;
-      parentRoute: typeof AuthenticatedRoute;
-    };
-    "/api/rpc/$": {
-      id: "/api/rpc/$";
-      path: "/api/rpc/$";
-      fullPath: "/api/rpc/$";
-      preLoaderRoute: typeof ApiRpcSplatRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
-    "/api/auth/$": {
-      id: "/api/auth/$";
-      path: "/api/auth/$";
-      fullPath: "/api/auth/$";
-      preLoaderRoute: typeof ApiAuthSplatRouteImport;
-      parentRoute: typeof rootRouteImport;
-    };
+    '/sign-up': {
+      id: '/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof SignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/': {
+      id: '/_authenticated/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/$': {
+      id: '/api/$'
+      path: '/api/$'
+      fullPath: '/api/$'
+      preLoaderRoute: typeof ApiSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/shopping-list': {
+      id: '/_authenticated/shopping-list'
+      path: '/shopping-list'
+      fullPath: '/shopping-list'
+      preLoaderRoute: typeof AuthenticatedShoppingListRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/schedule': {
+      id: '/_authenticated/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof AuthenticatedScheduleRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/rules': {
+      id: '/_authenticated/rules'
+      path: '/rules'
+      fullPath: '/rules'
+      preLoaderRoute: typeof AuthenticatedRulesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/preferences': {
+      id: '/_authenticated/preferences'
+      path: '/preferences'
+      fullPath: '/preferences'
+      preLoaderRoute: typeof AuthenticatedPreferencesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/meals': {
+      id: '/_authenticated/meals'
+      path: '/meals'
+      fullPath: '/meals'
+      preLoaderRoute: typeof AuthenticatedMealsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/categories': {
+      id: '/_authenticated/categories'
+      path: '/categories'
+      fullPath: '/categories'
+      preLoaderRoute: typeof AuthenticatedCategoriesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/api/rpc/$': {
+      id: '/api/rpc/$'
+      path: '/api/rpc/$'
+      fullPath: '/api/rpc/$'
+      preLoaderRoute: typeof ApiRpcSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute;
-  AuthenticatedMealsRoute: typeof AuthenticatedMealsRoute;
-  AuthenticatedPreferencesRoute: typeof AuthenticatedPreferencesRoute;
-  AuthenticatedRulesRoute: typeof AuthenticatedRulesRoute;
-  AuthenticatedScheduleRoute: typeof AuthenticatedScheduleRoute;
-  AuthenticatedShoppingListRoute: typeof AuthenticatedShoppingListRoute;
-  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute;
+  AuthenticatedCategoriesRoute: typeof AuthenticatedCategoriesRoute
+  AuthenticatedMealsRoute: typeof AuthenticatedMealsRoute
+  AuthenticatedPreferencesRoute: typeof AuthenticatedPreferencesRoute
+  AuthenticatedRulesRoute: typeof AuthenticatedRulesRoute
+  AuthenticatedScheduleRoute: typeof AuthenticatedScheduleRoute
+  AuthenticatedShoppingListRoute: typeof AuthenticatedShoppingListRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -301,11 +303,11 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedScheduleRoute: AuthenticatedScheduleRoute,
   AuthenticatedShoppingListRoute: AuthenticatedShoppingListRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
-};
+}
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
-);
+)
 
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
@@ -314,16 +316,16 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSplatRoute: ApiSplatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiRpcSplatRoute: ApiRpcSplatRoute,
-};
+}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()
 
-import type { getRouter } from "./router.tsx";
-import type { createStart } from "@tanstack/react-start";
-declare module "@tanstack/react-start" {
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
   interface Register {
-    ssr: true;
-    router: Awaited<ReturnType<typeof getRouter>>;
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
   }
 }

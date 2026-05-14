@@ -1,8 +1,3 @@
-import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
-import { orpc, client } from "#/orpc/client";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
@@ -16,12 +11,17 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
 } from "#/components/ui/sheet";
-import { OPERATOR_LABELS, SCOPE_LABELS, DIET_SUBJECT_LABELS } from "#/domains/rules/rules.zod";
-import type { RuleView, RuleInsert, RuleUpdate } from "#/domains/rules/rules.zod";
+import type { RuleInsert, RuleUpdate, RuleView } from "#/domains/rules/rules.zod";
+import { DIET_SUBJECT_LABELS, OPERATOR_LABELS, SCOPE_LABELS } from "#/domains/rules/rules.zod";
+import { client, orpc } from "#/orpc/client";
+import { useForm } from "@tanstack/react-form";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/rules")({
   loader: ({ context }) =>
@@ -37,7 +37,9 @@ export const Route = createFileRoute("/_authenticated/rules")({
 function useInvalidateRules() {
   const queryClient = useQueryClient();
   return () =>
-    void queryClient.invalidateQueries({ queryKey: orpc.rules.list.queryOptions().queryKey });
+    void queryClient.invalidateQueries({
+      queryKey: orpc.rules.list.queryOptions().queryKey,
+    });
 }
 
 function ruleLabel(rule: RuleView, categories: { id: number; name: string }[]): string {
@@ -95,7 +97,7 @@ function RuleForm({
         e.stopPropagation();
         void form.handleSubmit();
       }}
-      className="flex flex-col gap-5 mt-4"
+      className="flex flex-col gap-5 p-4"
     >
       <form.Field name="subjectType">
         {(field) => (
@@ -124,7 +126,9 @@ function RuleForm({
             {subjectType === "category" && (
               <form.Field
                 name="categoryId"
-                validators={{ onChange: ({ value }) => (!value ? "Select a category" : undefined) }}
+                validators={{
+                  onChange: ({ value }) => (!value ? "Select a category" : undefined),
+                }}
               >
                 {(field) => (
                   <div className="grid gap-1.5">
@@ -175,7 +179,9 @@ function RuleForm({
             {subjectType === "diet" && (
               <form.Field
                 name="subjectValue"
-                validators={{ onChange: ({ value }) => (!value ? "Select a diet" : undefined) }}
+                validators={{
+                  onChange: ({ value }) => (!value ? "Select a diet" : undefined),
+                }}
               >
                 {(field) => (
                   <div className="grid gap-1.5">
@@ -259,7 +265,9 @@ function RuleForm({
 
       <form.Field
         name="value"
-        validators={{ onChange: ({ value }) => (value < 0 ? "Must be 0 or more" : undefined) }}
+        validators={{
+          onChange: ({ value }) => (value < 0 ? "Must be 0 or more" : undefined),
+        }}
       >
         {(field) => (
           <div className="grid gap-1.5">
@@ -455,7 +463,10 @@ function RulesPage() {
                   value: values.value,
                   scope: values.operator === "at_most" ? values.scope : "per_schedule",
                 };
-                await client.rules.update({ id: sheetState.rule.id, ...update });
+                await client.rules.update({
+                  id: sheetState.rule.id,
+                  ...update,
+                });
                 invalidate();
                 setSheetState(null);
               }}
