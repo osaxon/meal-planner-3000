@@ -8,13 +8,7 @@ import { type Column, type ColumnDef } from "@tanstack/react-table";
 import { PencilIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 function SelectFilter({
   column,
@@ -23,17 +17,13 @@ function SelectFilter({
   column: Column<MealWithCategory, unknown>;
   labels?: Record<string, string>;
 }) {
-  const options = Array.from(
-    column.getFacetedUniqueValues().keys(),
-  ).sort() as string[];
+  const options = Array.from(column.getFacetedUniqueValues().keys()).sort() as string[];
   const filterValue = (column.getFilterValue() as string) ?? "";
 
   return (
     <Select
       value={filterValue}
-      onValueChange={(v) =>
-        column.setFilterValue(v === "__all__" ? undefined : v)
-      }
+      onValueChange={(v) => column.setFilterValue(v === "__all__" ? undefined : v)}
     >
       <SelectTrigger>
         <SelectValue placeholder="All" />
@@ -60,8 +50,7 @@ export const getMealColumns = ({
     header: ({ table }) => (
       <Checkbox
         checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
+          table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")
         }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
         aria-label="Select all"
@@ -86,10 +75,7 @@ export const getMealColumns = ({
   {
     accessorKey: "diet",
     header: ({ column }) => (
-      <SelectFilter
-        column={column}
-        labels={DIET_LABELS as Record<string, string>}
-      />
+      <SelectFilter column={column} labels={DIET_LABELS as Record<string, string>} />
     ),
     cell: ({ row }) => {
       const diet = row.getValue("diet") as Meal["diet"];
@@ -103,10 +89,7 @@ export const getMealColumns = ({
   {
     accessorKey: "season",
     header: ({ column }) => (
-      <SelectFilter
-        column={column}
-        labels={SEASON_LABELS as Record<string, string>}
-      />
+      <SelectFilter column={column} labels={SEASON_LABELS as Record<string, string>} />
     ),
     cell: ({ row }) => {
       return SEASON_LABELS[row.getValue("season") as Meal["season"]];
