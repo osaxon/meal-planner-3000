@@ -1,6 +1,6 @@
 import { Button } from "#/components/ui/button";
+import { Field, FieldGroup, FieldLabel } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
-import { Label } from "#/components/ui/label";
 import type { Ingredient, IngredientInsert } from "#/domains/meals/meals.zod";
 import { client, orpc } from "#/orpc/client";
 import { useForm } from "@tanstack/react-form";
@@ -169,7 +169,7 @@ export function IngredientsSection({ mealId }: { mealId: number }) {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : (
-        <ul className="space-y-2 mb-4">
+        <ul className="flex flex-col gap-2 mb-4">
           {ingredients.length === 0 && (
             <p className="text-sm text-muted-foreground">No ingredients yet.</p>
           )}
@@ -192,49 +192,51 @@ export function IngredientsSection({ mealId }: { mealId: number }) {
         }}
         className="flex items-end gap-2"
       >
-        <form.Field
-          name="name"
-          validators={{
-            onChange: ({ value }) => (!value.trim() ? "Required" : undefined),
-          }}
-        >
-          {(field) => (
-            <div className="grid gap-1 flex-1">
-              <Label className="text-xs">Name</Label>
-              <Input
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                placeholder="e.g. Chicken breast"
-              />
-            </div>
-          )}
-        </form.Field>
-        <form.Field name="quantity">
-          {(field) => (
-            <div className="grid gap-1 w-16">
-              <Label className="text-xs">Qty</Label>
-              <Input
-                type="number"
-                min={0}
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                placeholder="—"
-              />
-            </div>
-          )}
-        </form.Field>
-        <form.Field name="unit">
-          {(field) => (
-            <div className="grid gap-1 w-20">
-              <Label className="text-xs">Unit</Label>
-              <Input
-                value={field.state.value}
-                onChange={(e) => field.handleChange(e.target.value)}
-                placeholder="e.g. g"
-              />
-            </div>
-          )}
-        </form.Field>
+        <FieldGroup className="flex-row items-end gap-2">
+          <form.Field
+            name="name"
+            validators={{
+              onChange: ({ value }) => (!value.trim() ? "Required" : undefined),
+            }}
+          >
+            {(field) => (
+              <Field className="flex-1">
+                <FieldLabel>Name</FieldLabel>
+                <Input
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="e.g. Chicken breast"
+                />
+              </Field>
+            )}
+          </form.Field>
+          <form.Field name="quantity">
+            {(field) => (
+              <Field className="w-16">
+                <FieldLabel>Qty</FieldLabel>
+                <Input
+                  type="number"
+                  min={0}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="—"
+                />
+              </Field>
+            )}
+          </form.Field>
+          <form.Field name="unit">
+            {(field) => (
+              <Field className="w-20">
+                <FieldLabel>Unit</FieldLabel>
+                <Input
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  placeholder="e.g. g"
+                />
+              </Field>
+            )}
+          </form.Field>
+        </FieldGroup>
         <Button type="submit" size="sm" disabled={form.state.isSubmitting}>
           Add
         </Button>

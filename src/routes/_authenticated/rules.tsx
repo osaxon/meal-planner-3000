@@ -1,9 +1,11 @@
+import { Alert, AlertDescription, AlertTitle } from "#/components/ui/alert";
 import { Button } from "#/components/ui/button";
+import { Field, FieldError, FieldGroup, FieldLabel } from "#/components/ui/field";
 import { Input } from "#/components/ui/input";
-import { Label } from "#/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -21,6 +23,7 @@ import { client, orpc } from "#/orpc/client";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/rules")({
@@ -99,194 +102,208 @@ function RuleForm({
       }}
       className="flex flex-col gap-5 p-4"
     >
-      <form.Field name="subjectType">
-        {(field) => (
-          <div className="grid gap-1.5">
-            <Label>Subject type</Label>
-            <Select
-              value={field.state.value}
-              onValueChange={(v) => field.handleChange(v as FormValues["subjectType"])}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="category">Category</SelectItem>
-                <SelectItem value="tag">Tag</SelectItem>
-                <SelectItem value="diet">Diet</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      </form.Field>
-
-      <form.Subscribe selector={(s) => s.values.subjectType}>
-        {(subjectType) => (
-          <>
-            {subjectType === "category" && (
-              <form.Field
-                name="categoryId"
-                validators={{
-                  onChange: ({ value }) => (!value ? "Select a category" : undefined),
-                }}
+      <FieldGroup>
+        <form.Field name="subjectType">
+          {(field) => (
+            <Field>
+              <FieldLabel htmlFor="rule-subject-type">Subject type</FieldLabel>
+              <Select
+                value={field.state.value}
+                onValueChange={(v) => field.handleChange(v as FormValues["subjectType"])}
               >
-                {(field) => (
-                  <div className="grid gap-1.5">
-                    <Label>Category</Label>
-                    <Select value={field.state.value} onValueChange={field.handleChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((c) => (
-                          <SelectItem key={c.id} value={String(c.id)}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {field.state.meta.errors[0] && (
-                      <span className="text-sm text-destructive">{field.state.meta.errors[0]}</span>
-                    )}
-                  </div>
-                )}
-              </form.Field>
-            )}
+                <SelectTrigger id="rule-subject-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="category">Category</SelectItem>
+                    <SelectItem value="tag">Tag</SelectItem>
+                    <SelectItem value="diet">Diet</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+        </form.Field>
 
-            {subjectType === "tag" && (
-              <form.Field
-                name="subjectValue"
-                validators={{
-                  onChange: ({ value }) => (!value.trim() ? "Enter a tag" : undefined),
-                }}
-              >
-                {(field) => (
-                  <div className="grid gap-1.5">
-                    <Label>Tag</Label>
-                    <Input
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      placeholder="e.g. quick"
-                    />
-                    {field.state.meta.errors[0] && (
-                      <span className="text-sm text-destructive">{field.state.meta.errors[0]}</span>
-                    )}
-                  </div>
-                )}
-              </form.Field>
-            )}
-
-            {subjectType === "diet" && (
-              <form.Field
-                name="subjectValue"
-                validators={{
-                  onChange: ({ value }) => (!value ? "Select a diet" : undefined),
-                }}
-              >
-                {(field) => (
-                  <div className="grid gap-1.5">
-                    <Label>Diet</Label>
-                    <Select value={field.state.value} onValueChange={field.handleChange}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select diet" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(DIET_SUBJECT_LABELS).map(([v, l]) => (
-                          <SelectItem key={v} value={v}>
-                            {l}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {field.state.meta.errors[0] && (
-                      <span className="text-sm text-destructive">{field.state.meta.errors[0]}</span>
-                    )}
-                  </div>
-                )}
-              </form.Field>
-            )}
-          </>
-        )}
-      </form.Subscribe>
-
-      <form.Field name="operator">
-        {(field) => (
-          <div className="grid gap-1.5">
-            <Label>Operator</Label>
-            <Select
-              value={field.state.value}
-              onValueChange={(v) => field.handleChange(v as FormValues["operator"])}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(OPERATOR_LABELS).map(([v, l]) => (
-                  <SelectItem key={v} value={v}>
-                    {l}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      </form.Field>
-
-      <form.Subscribe selector={(s) => s.values.operator}>
-        {(operator) =>
-          operator === "at_most" ? (
-            <form.Field name="scope">
-              {(field) => (
-                <div className="grid gap-1.5">
-                  <Label>Applies per</Label>
-                  <Select
-                    value={field.state.value}
-                    onValueChange={(v) => field.handleChange(v as FormValues["scope"])}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.entries(SCOPE_LABELS) as [FormValues["scope"], string][]).map(
-                        ([v, l]) => (
-                          <SelectItem key={v} value={v}>
-                            {l}
-                          </SelectItem>
-                        ),
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
+        <form.Subscribe selector={(s) => s.values.subjectType}>
+          {(subjectType) => (
+            <>
+              {subjectType === "category" && (
+                <form.Field
+                  name="categoryId"
+                  validators={{
+                    onChange: ({ value }) => (!value ? "Select a category" : undefined),
+                  }}
+                >
+                  {(field) => (
+                    <Field data-invalid={field.state.meta.errors.length > 0 || undefined}>
+                      <FieldLabel htmlFor="rule-category">Category</FieldLabel>
+                      <Select value={field.state.value} onValueChange={field.handleChange}>
+                        <SelectTrigger
+                          id="rule-category"
+                          aria-invalid={field.state.meta.errors.length > 0 || undefined}
+                        >
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {categories.map((c) => (
+                              <SelectItem key={c.id} value={String(c.id)}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <FieldError>{field.state.meta.errors[0]?.toString()}</FieldError>
+                    </Field>
+                  )}
+                </form.Field>
               )}
-            </form.Field>
-          ) : null
-        }
-      </form.Subscribe>
 
-      <form.Field
-        name="value"
-        validators={{
-          onChange: ({ value }) => (value < 0 ? "Must be 0 or more" : undefined),
-        }}
-      >
-        {(field) => (
-          <div className="grid gap-1.5">
-            <Label>Number of meals</Label>
-            <Input
-              type="number"
-              min={0}
-              value={field.state.value}
-              onChange={(e) => field.handleChange(Number(e.target.value))}
-              className="w-24"
-            />
-            {field.state.meta.errors[0] && (
-              <span className="text-sm text-destructive">{field.state.meta.errors[0]}</span>
-            )}
-          </div>
-        )}
-      </form.Field>
+              {subjectType === "tag" && (
+                <form.Field
+                  name="subjectValue"
+                  validators={{
+                    onChange: ({ value }) => (!value.trim() ? "Enter a tag" : undefined),
+                  }}
+                >
+                  {(field) => (
+                    <Field data-invalid={field.state.meta.errors.length > 0 || undefined}>
+                      <FieldLabel htmlFor="rule-tag">Tag</FieldLabel>
+                      <Input
+                        id="rule-tag"
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        placeholder="e.g. quick"
+                        aria-invalid={field.state.meta.errors.length > 0 || undefined}
+                      />
+                      <FieldError>{field.state.meta.errors[0]?.toString()}</FieldError>
+                    </Field>
+                  )}
+                </form.Field>
+              )}
 
-      {serverError && <p className="text-sm text-destructive">{serverError}</p>}
+              {subjectType === "diet" && (
+                <form.Field
+                  name="subjectValue"
+                  validators={{
+                    onChange: ({ value }) => (!value ? "Select a diet" : undefined),
+                  }}
+                >
+                  {(field) => (
+                    <Field data-invalid={field.state.meta.errors.length > 0 || undefined}>
+                      <FieldLabel htmlFor="rule-diet">Diet</FieldLabel>
+                      <Select value={field.state.value} onValueChange={field.handleChange}>
+                        <SelectTrigger
+                          id="rule-diet"
+                          aria-invalid={field.state.meta.errors.length > 0 || undefined}
+                        >
+                          <SelectValue placeholder="Select diet" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {Object.entries(DIET_SUBJECT_LABELS).map(([v, l]) => (
+                              <SelectItem key={v} value={v}>
+                                {l}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <FieldError>{field.state.meta.errors[0]?.toString()}</FieldError>
+                    </Field>
+                  )}
+                </form.Field>
+              )}
+            </>
+          )}
+        </form.Subscribe>
+
+        <form.Field name="operator">
+          {(field) => (
+            <Field>
+              <FieldLabel htmlFor="rule-operator">Operator</FieldLabel>
+              <Select
+                value={field.state.value}
+                onValueChange={(v) => field.handleChange(v as FormValues["operator"])}
+              >
+                <SelectTrigger id="rule-operator">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {Object.entries(OPERATOR_LABELS).map(([v, l]) => (
+                      <SelectItem key={v} value={v}>
+                        {l}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+        </form.Field>
+
+        <form.Subscribe selector={(s) => s.values.operator}>
+          {(operator) =>
+            operator === "at_most" ? (
+              <form.Field name="scope">
+                {(field) => (
+                  <Field>
+                    <FieldLabel htmlFor="rule-scope">Applies per</FieldLabel>
+                    <Select
+                      value={field.state.value}
+                      onValueChange={(v) => field.handleChange(v as FormValues["scope"])}
+                    >
+                      <SelectTrigger id="rule-scope">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {(Object.entries(SCOPE_LABELS) as [FormValues["scope"], string][]).map(
+                            ([v, l]) => (
+                              <SelectItem key={v} value={v}>
+                                {l}
+                              </SelectItem>
+                            ),
+                          )}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                )}
+              </form.Field>
+            ) : null
+          }
+        </form.Subscribe>
+
+        <form.Field
+          name="value"
+          validators={{
+            onChange: ({ value }) => (value < 0 ? "Must be 0 or more" : undefined),
+          }}
+        >
+          {(field) => (
+            <Field data-invalid={field.state.meta.errors.length > 0 || undefined}>
+              <FieldLabel htmlFor="rule-value">Number of meals</FieldLabel>
+              <Input
+                id="rule-value"
+                type="number"
+                min={0}
+                value={field.state.value}
+                onChange={(e) => field.handleChange(Number(e.target.value))}
+                className="w-24"
+                aria-invalid={field.state.meta.errors.length > 0 || undefined}
+              />
+              <FieldError>{field.state.meta.errors[0]?.toString()}</FieldError>
+            </Field>
+          )}
+        </form.Field>
+      </FieldGroup>
+
+      {serverError && <FieldError role="alert">{serverError}</FieldError>}
       <Button type="submit" disabled={form.state.isSubmitting} className="self-start">
         {submitLabel}
       </Button>
@@ -369,10 +386,14 @@ function RulesPage() {
       </div>
 
       {contradictions.length > 0 && (
-        <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
-          ⚠ {contradictions.length} rule{contradictions.length > 1 ? "s" : ""} cannot all be
-          satisfied simultaneously. The scheduler will do its best.
-        </div>
+        <Alert className="mt-4">
+          <TriangleAlertIcon data-icon />
+          <AlertTitle>
+            {contradictions.length} rule{contradictions.length > 1 ? "s" : ""} cannot all be
+            satisfied simultaneously
+          </AlertTitle>
+          <AlertDescription>The scheduler will do its best.</AlertDescription>
+        </Alert>
       )}
 
       {rules.length === 0 ? (
@@ -380,11 +401,11 @@ function RulesPage() {
           No rules yet. Add a rule to control how the scheduler builds your meal plan.
         </p>
       ) : (
-        <ul className="mt-6 space-y-2">
+        <ul className="mt-6 flex flex-col gap-2">
           {rules.map((rule) => (
             <li
               key={rule.id}
-              className={`rounded-md border px-4 py-3 ${rule.isContradicted ? "border-amber-300 bg-amber-50/50 dark:border-amber-700 dark:bg-amber-950/30" : ""}`}
+              className={`rounded-md border px-4 py-3 ${rule.isContradicted ? "border-destructive/30 bg-destructive/5" : ""}`}
             >
               {deletingId === rule.id ? (
                 <div className="flex items-center gap-2">
@@ -406,7 +427,7 @@ function RulesPage() {
                   <div className="min-w-0">
                     <p className="text-sm font-medium">{ruleLabel(rule, categories)}</p>
                     {rule.isContradicted && (
-                      <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                      <p className="text-xs text-destructive mt-0.5">
                         Contradicts another rule on the same subject
                       </p>
                     )}

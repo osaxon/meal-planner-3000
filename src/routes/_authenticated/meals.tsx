@@ -62,7 +62,6 @@ function MealsPage() {
     mutationFn: (input: MealInsert) => client.meals.create(input),
     onSuccess: () => {
       invalidate();
-      setSheetState(null);
     },
   });
 
@@ -134,14 +133,23 @@ function MealsPage() {
             </SheetDescription>
           </SheetHeader>
           {sheetState?.mode === "create" && (
-            <MealForm
-              key="create"
-              defaultValues={CREATE_DEFAULTS}
-              submitLabel="Add meal"
-              onSubmit={async (values) => {
-                await createMutation.mutateAsync(values);
-              }}
-            />
+            <>
+              <MealForm
+                key="create"
+                defaultValues={CREATE_DEFAULTS}
+                submitLabel="Create meal"
+                onSubmit={async (values) => {
+                  const meal = await createMutation.mutateAsync(values);
+                  setSheetState({ mode: "edit", meal });
+                }}
+              />
+              <div className="border-t p-4">
+                <h3 className="text-sm font-semibold mb-1">Ingredients</h3>
+                <p className="text-sm text-muted-foreground">
+                  Save the meal above to add ingredients.
+                </p>
+              </div>
+            </>
           )}
           {sheetState?.mode === "edit" && (
             <>

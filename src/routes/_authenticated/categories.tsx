@@ -175,7 +175,7 @@ function CategoriesPage() {
 
       <CreateCategoryForm />
 
-      <ul className="mt-6 space-y-2">
+      <ul className="mt-6 flex flex-col gap-2">
         {categories.length === 0 && (
           <p className="text-sm text-muted-foreground">No categories yet.</p>
         )}

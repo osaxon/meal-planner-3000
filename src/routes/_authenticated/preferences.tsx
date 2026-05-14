@@ -3,9 +3,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { orpc, client } from "#/orpc/client";
 import { Button } from "#/components/ui/button";
-import { Input } from "#/components/ui/input";
-import { Label } from "#/components/ui/label";
 import { Checkbox } from "#/components/ui/checkbox";
+import { Field, FieldError, FieldGroup, FieldLabel } from "#/components/ui/field";
+import { Input } from "#/components/ui/input";
 import type { Preferences } from "#/domains/preferences/preferences.zod";
 
 export const Route = createFileRoute("/_authenticated/preferences")({
@@ -56,9 +56,8 @@ function PreferencesPage() {
           e.stopPropagation();
           void form.handleSubmit();
         }}
-        className="mt-8 space-y-10"
+        className="mt-8 flex flex-col gap-10"
       >
-        {/* Slot Configuration */}
         <section>
           <h2 className="text-base font-semibold mb-4">Slot configuration</h2>
           <div className="overflow-x-auto">
@@ -94,10 +93,9 @@ function PreferencesPage() {
           </div>
         </section>
 
-        {/* Scheduler Constraints */}
         <section>
           <h2 className="text-base font-semibold mb-4">Scheduler constraints</h2>
-          <div className="space-y-4 max-w-xs">
+          <FieldGroup className="max-w-xs">
             {(
               [{ name: "maxLeftoverMeals", label: "Max leftover meals per schedule" }] as const
             ).map(({ name, label }) => (
@@ -110,10 +108,11 @@ function PreferencesPage() {
                 }}
               >
                 {(field) => (
-                  <div className="flex items-center gap-4">
-                    <Label htmlFor={name} className="flex-1 text-sm">
-                      {label}
-                    </Label>
+                  <Field
+                    orientation="horizontal"
+                    data-invalid={field.state.meta.errors.length > 0 || undefined}
+                  >
+                    <FieldLabel htmlFor={name}>{label}</FieldLabel>
                     <Input
                       id={name}
                       type="number"
@@ -122,15 +121,14 @@ function PreferencesPage() {
                       onChange={(e) => field.handleChange(Number(e.target.value))}
                       onBlur={field.handleBlur}
                       className="w-20 text-center"
+                      aria-invalid={field.state.meta.errors.length > 0 || undefined}
                     />
-                    {field.state.meta.errors.length > 0 && (
-                      <span className="text-sm text-destructive">{field.state.meta.errors[0]}</span>
-                    )}
-                  </div>
+                    <FieldError>{field.state.meta.errors[0]?.toString()}</FieldError>
+                  </Field>
                 )}
               </form.Field>
             ))}
-          </div>
+          </FieldGroup>
         </section>
 
         <div className="flex items-center gap-4">
@@ -139,9 +137,9 @@ function PreferencesPage() {
           </Button>
           {mutation.isSuccess && <span className="text-sm text-muted-foreground">Saved.</span>}
           {mutation.error && (
-            <span className="text-sm text-destructive">
+            <FieldError>
               {(mutation.error as { message?: string }).message ?? "Failed to save"}
-            </span>
+            </FieldError>
           )}
         </div>
       </form>
