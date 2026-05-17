@@ -1,5 +1,6 @@
 import type { Day } from "#/domains/preferences/preferences.zod";
-import { toDateKey, nextCalendarDayKey } from "#/lib/date-utils";
+import { DAY_AVAILABILITY_PREDICATES } from "#/domains/meals/meals.zod";
+import { addDays, toDateKey, nextCalendarDayKey } from "#/lib/date-utils";
 import type {
   MealWithCategory,
   SchedulerInput,
@@ -26,7 +27,7 @@ const ELIGIBLE_SEASONS: Record<number, Set<MealWithCategory["season"]>> = {
 };
 
 export function getEligibleSeasons(date: Date): Set<MealWithCategory["season"]> {
-  return ELIGIBLE_SEASONS[date.getMonth() + 1]!;
+  return ELIGIBLE_SEASONS[date.getUTCMonth() + 1]!;
 }
 
 // ── Slot generation ──────────────────────────────────────────────────────────
@@ -49,10 +50,9 @@ function generateSlotFrames(
   const totalDays = config.durationWeeks * 7;
 
   for (let offset = 0; offset < totalDays; offset++) {
-    const date = new Date(config.startDate);
-    date.setDate(date.getDate() + offset);
+    const date = addDays(config.startDate, offset);
 
-    const dayName = DAY_NAMES[date.getDay()]!;
+    const dayName = DAY_NAMES[date.getUTCDay()]!;
     const dayConfig = slotConfig[dayName];
 
     if (dayConfig.lunch) frames.push({ date, mealTime: "lunch" });
@@ -135,6 +135,7 @@ function pickMeal(
   pool: MealWithCategory[],
   usedIds: Set<number>,
   mealTime: "lunch" | "dinner",
+  slotDate: Date,
   slotDateKey: string,
   states: RuleState[],
   restrictToRequired: boolean,
@@ -143,7 +144,8 @@ function pickMeal(
     (m) =>
       !usedIds.has(m.id) &&
       !exceedsAtMost(m, states, slotDateKey) &&
-      (m.suitableFor === "any" || m.suitableFor === mealTime),
+      (m.suitableFor === "any" || m.suitableFor === mealTime) &&
+      DAY_AVAILABILITY_PREDICATES[m.dayAvailability](slotDate),
   );
 
   if (restrictToRequired) {
@@ -213,12 +215,20 @@ export class SchedulerService {
       const needed = stillNeeded(ruleStates);
       const restrict = needed > 0 && remainingEmpty(result, i) <= needed;
 
-      let meal = pickMeal(pool, usedIds, slot.mealTime, slotDateKey, ruleStates, restrict);
+      let meal = pickMeal(
+        pool,
+        usedIds,
+        slot.mealTime,
+        slot.date,
+        slotDateKey,
+        ruleStates,
+        restrict,
+      );
 
       // If all meals are used, reset uniqueness and try again (handles small pools)
       if (!meal && usedIds.size > 0) {
         usedIds.clear();
-        meal = pickMeal(pool, usedIds, slot.mealTime, slotDateKey, ruleStates, restrict);
+        meal = pickMeal(pool, usedIds, slot.mealTime, slot.date, slotDateKey, ruleStates, restrict);
       }
 
       if (!meal) continue; // all at_most rules exhausted — leave empty

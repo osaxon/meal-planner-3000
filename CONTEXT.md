@@ -10,6 +10,16 @@ The owning entity for all data in the system — Meals, Schedules, and Preferenc
 
 A known recipe belonging to a Household's Meal Pool. A Meal has a name, a Category, and metadata (diet, season, producesLeftovers, suitableFor, tags) and a list of Ingredients. Diet is one of three values: `meat`, `fish`, or `vegetarian`.
 
+### Meal Day Availability
+
+A property on a Meal (`dayAvailability`) indicating which days of the week the Scheduler may place it as a **Filled Slot**. Values are named presets:
+
+- `any` — no restriction; the Meal is eligible on any day (default).
+- `weekdays_only` — the Meal is only eligible on Monday through Friday.
+- `weekends_only` — the Meal is only eligible on Saturday and Sunday.
+
+Day availability does not restrict Leftover Slots — leftovers are eligible for any available Slot regardless of the source Meal's day availability, consistent with how Meal Suitability treats leftovers. New presets are added by extending the enum in the schema and adding one entry to the predicate map in the meal domain; no Scheduler logic changes are required.
+
 ### Meal Suitability
 
 A property on a Meal (`suitableFor`) indicating which meal times it is appropriate to **freshly cook**: `lunch`, `dinner`, or `any`. The Scheduler only places a Meal as a **Filled Slot** whose meal time matches the Meal's suitability. Suitability does not restrict Leftover Slots — leftovers of any Meal are eligible for any available Slot (lunch or dinner), since eating leftovers is not the same as freshly preparing the Meal. The default value for existing Meals is `any`.

@@ -13,6 +13,7 @@ const MEAL_PROJECTION = {
   season: meals.season,
   producesLeftovers: meals.producesLeftovers,
   suitableFor: meals.suitableFor,
+  dayAvailability: meals.dayAvailability,
   createdAt: meals.createdAt,
   updatedAt: meals.updatedAt,
 };

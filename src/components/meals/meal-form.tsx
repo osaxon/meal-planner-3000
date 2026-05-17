@@ -11,7 +11,12 @@ import {
 } from "#/components/ui/select";
 import { Input } from "#/components/ui/input";
 import type { MealInsert } from "#/domains/meals/meals.zod";
-import { DIET_LABELS, SEASON_LABELS, SUITABLE_FOR_LABELS } from "#/domains/meals/meals.zod";
+import {
+  DAY_AVAILABILITY_LABELS,
+  DIET_LABELS,
+  SEASON_LABELS,
+  SUITABLE_FOR_LABELS,
+} from "#/domains/meals/meals.zod";
 import { orpc } from "#/orpc/client";
 import { useForm } from "@tanstack/react-form";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -192,6 +197,36 @@ export function MealForm({ defaultValues, onSubmit, submitLabel }: Props) {
                   <SelectGroup>
                     {(
                       Object.entries(SUITABLE_FOR_LABELS) as [MealInsert["suitableFor"], string][]
+                    ).map(([value, label]) => (
+                      <SelectItem key={value} value={value ?? ""}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+        </form.Field>
+
+        <form.Field name="dayAvailability">
+          {(field) => (
+            <Field>
+              <FieldLabel htmlFor="meal-day-availability">Day availability</FieldLabel>
+              <Select
+                value={field.state.value ?? "any"}
+                onValueChange={(v) => field.handleChange(v as MealInsert["dayAvailability"])}
+              >
+                <SelectTrigger id="meal-day-availability">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {(
+                      Object.entries(DAY_AVAILABILITY_LABELS) as [
+                        MealInsert["dayAvailability"],
+                        string,
+                      ][]
                     ).map(([value, label]) => (
                       <SelectItem key={value} value={value ?? ""}>
                         {label}

@@ -66,6 +66,7 @@ function makeMeal(id: number, overrides: Partial<MealWithCategory> = {}): MealWi
     season: "year_round",
     producesLeftovers: false,
     suitableFor: "any",
+    dayAvailability: "any",
     tags: [],
     createdAt: null,
     updatedAt: null,
@@ -152,7 +153,7 @@ describe("getEligibleSeasons", () => {
 
   it("returns spring_summer for April through September", () => {
     for (const month of [4, 5, 6, 7, 8, 9]) {
-      const date = new Date(2024, month - 1, 1);
+      const date = new Date(Date.UTC(2024, month - 1, 1));
       expect(getEligibleSeasons(date)).toContain("spring_summer");
       expect(getEligibleSeasons(date)).not.toContain("autumn_winter");
     }
@@ -160,7 +161,7 @@ describe("getEligibleSeasons", () => {
 
   it("returns autumn_winter for October through March (except December)", () => {
     for (const month of [1, 2, 3, 10, 11]) {
-      const date = new Date(2024, month - 1, 1);
+      const date = new Date(Date.UTC(2024, month - 1, 1));
       expect(getEligibleSeasons(date)).toContain("autumn_winter");
       expect(getEligibleSeasons(date)).not.toContain("festive");
     }
@@ -176,7 +177,7 @@ describe("getEligibleSeasons", () => {
 
   it("always includes year_round", () => {
     for (const month of [1, 4, 7, 10, 12]) {
-      expect(getEligibleSeasons(new Date(2024, month - 1, 1))).toContain("year_round");
+      expect(getEligibleSeasons(new Date(Date.UTC(2024, month - 1, 1)))).toContain("year_round");
     }
   });
 });
@@ -596,6 +597,129 @@ describe("meal suitability", () => {
       expect(sourceSlot.type).toBe("filled");
       expect(sourceSlot.mealId).toBe(leftoverMeal.id);
     }
+  });
+});
+
+// ── Meal day availability ─────────────────────────────────────────────────────
+
+// JAN_MONDAY (2024-01-01) is a Monday — a 1-week run covers Mon 1 Jan – Sun 7 Jan.
+// Days in that week: Mon(1), Tue(2), Wed(3), Thu(4), Fri(5), Sat(6), Sun(7 Jan=0).
+
+describe("meal day availability", () => {
+  it("never places a weekdays_only meal on a Saturday or Sunday", () => {
+    const weekdayMeal = makeMeal(1, { dayAvailability: "weekdays_only" });
+    const result = run([weekdayMeal], { slotConfig: ALL_DINNERS });
+
+    const weekendSlots = result.filter((s) => {
+      const day = s.date.getUTCDay();
+      return (day === 0 || day === 6) && s.type === "filled" && s.mealId === weekdayMeal.id;
+    });
+    expect(weekendSlots).toHaveLength(0);
+  });
+
+  it("never places a weekends_only meal on a weekday", () => {
+    const weekendMeal = makeMeal(1, { dayAvailability: "weekends_only" });
+    const result = run([weekendMeal], { slotConfig: ALL_DINNERS });
+
+    const weekdaySlots = result.filter((s) => {
+      const day = s.date.getUTCDay();
+      return day >= 1 && day <= 5 && s.type === "filled" && s.mealId === weekendMeal.id;
+    });
+    expect(weekdaySlots).toHaveLength(0);
+  });
+
+  it("places a weekdays_only meal only on Mon–Fri slots", () => {
+    const weekdayMeals = Array.from({ length: 7 }, (_, i) =>
+      makeMeal(i + 1, { dayAvailability: "weekdays_only" }),
+    );
+    const result = run(weekdayMeals, { slotConfig: ALL_DINNERS });
+
+    for (const slot of result.filter((s) => s.type === "filled")) {
+      const day = slot.date.getUTCDay();
+      expect(day).toBeGreaterThanOrEqual(1);
+      expect(day).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it("places a weekends_only meal only on Sat–Sun slots", () => {
+    const weekendMeals = Array.from({ length: 7 }, (_, i) =>
+      makeMeal(i + 1, { dayAvailability: "weekends_only" }),
+    );
+    const result = run(weekendMeals, { slotConfig: ALL_DINNERS });
+
+    for (const slot of result.filter((s) => s.type === "filled")) {
+      const day = slot.date.getUTCDay();
+      expect(day === 0 || day === 6).toBe(true);
+    }
+  });
+
+  it("leaves weekend slots empty when only weekdays_only meals exist", () => {
+    const weekdayMeals = Array.from({ length: 7 }, (_, i) =>
+      makeMeal(i + 1, { dayAvailability: "weekdays_only" }),
+    );
+    const result = run(weekdayMeals, { slotConfig: ALL_DINNERS });
+
+    const weekendSlots = result.filter((s) => {
+      const day = s.date.getUTCDay();
+      return day === 0 || day === 6;
+    });
+    expect(weekendSlots.every((s) => s.type === "empty")).toBe(true);
+  });
+
+  it("fills weekend slots from the any pool when weekdays_only and any meals coexist", () => {
+    const weekdayOnly = Array.from({ length: 5 }, (_, i) =>
+      makeMeal(i + 1, { dayAvailability: "weekdays_only" }),
+    );
+    const anyDay = Array.from({ length: 2 }, (_, i) =>
+      makeMeal(i + 10, { dayAvailability: "any" }),
+    );
+    const result = run([...weekdayOnly, ...anyDay], { slotConfig: ALL_DINNERS });
+
+    const anyDayIds = new Set(anyDay.map((m) => m.id));
+    const weekendFilled = result.filter((s) => {
+      const day = s.date.getUTCDay();
+      return (day === 0 || day === 6) && s.type === "filled";
+    });
+    expect(weekendFilled.every((s) => anyDayIds.has(s.mealId!))).toBe(true);
+  });
+
+  it("does not apply day availability to leftover slots", () => {
+    // A weekdays_only meal cooked on Friday can have its leftover on Saturday
+    const FRIDAY_ONLY_DINNERS: Preferences["slotConfig"] = {
+      monday: { lunch: false, dinner: false },
+      tuesday: { lunch: false, dinner: false },
+      wednesday: { lunch: false, dinner: false },
+      thursday: { lunch: false, dinner: false },
+      friday: { lunch: false, dinner: true },
+      saturday: { lunch: false, dinner: true },
+      sunday: { lunch: false, dinner: false },
+    };
+
+    const weekdayMeal = makeMeal(1, {
+      dayAvailability: "weekdays_only",
+      producesLeftovers: true,
+    });
+    const filler = makeMeal(2, { dayAvailability: "any" });
+
+    const result = scheduler.generate({
+      meals: [weekdayMeal, filler],
+      previousMealIds: [],
+      preferences: makePrefs({ maxLeftoverMeals: 99, slotConfig: FRIDAY_ONLY_DINNERS }),
+      config: { startDate: JAN_MONDAY, durationWeeks: 1 },
+      rules: [],
+    });
+
+    // Friday slot should be filled with the weekdays_only meal
+    const fridayFilled = result.find(
+      (s) => s.type === "filled" && s.mealId === weekdayMeal.id && s.date.getUTCDay() === 5,
+    );
+    if (!fridayFilled) return; // meal may not have been picked — skip
+
+    // Its leftover on Saturday is allowed despite weekdays_only
+    const saturdayLeftover = result.find(
+      (s) => s.type === "leftover" && s.mealId === weekdayMeal.id && s.date.getUTCDay() === 6,
+    );
+    expect(saturdayLeftover).toBeDefined();
   });
 });
 

@@ -4,6 +4,7 @@ import { DataTable } from "#/components/meals/data-table";
 import { IngredientsSection } from "#/components/meals/ingredients-section";
 import { MealForm } from "#/components/meals/meal-form";
 import { TagEditor } from "#/components/meals/tag-editor";
+import { ShoppingListSm } from "#/components/shopping-list/shopping-list-sm";
 import { Button } from "#/components/ui/button";
 import {
   Sheet,
@@ -37,6 +38,7 @@ const CREATE_DEFAULTS: MealInsert = {
   season: "year_round",
   producesLeftovers: false,
   suitableFor: "any",
+  dayAvailability: "any",
 };
 
 function MealsPage() {
@@ -48,7 +50,10 @@ function MealsPage() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const columns = useMemo(
-    () => getMealColumns({ onEdit: (meal) => setSheetState({ mode: "edit", meal }) }),
+    () =>
+      getMealColumns({
+        onEdit: (meal) => setSheetState({ mode: "edit", meal }),
+      }),
     [],
   );
 
@@ -92,7 +97,8 @@ function MealsPage() {
         <div className="flex items-center gap-2">
           {selectedIds.length > 0 && (
             <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
-              Delete {selectedIds.length} meal{selectedIds.length !== 1 ? "s" : ""}
+              Delete {selectedIds.length} meal
+              {selectedIds.length !== 1 ? "s" : ""}
             </Button>
           )}
           <Button onClick={() => setSheetState({ mode: "create" })}>Add meal</Button>
@@ -162,6 +168,7 @@ function MealsPage() {
                   season: sheetState.meal.season,
                   producesLeftovers: sheetState.meal.producesLeftovers,
                   suitableFor: sheetState.meal.suitableFor,
+                  dayAvailability: sheetState.meal.dayAvailability,
                 }}
                 submitLabel="Save changes"
                 onSubmit={async (values) => {

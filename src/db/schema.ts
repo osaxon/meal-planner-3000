@@ -44,6 +44,11 @@ export const meals = sqliteTable("meals", {
   suitableFor: text("suitable_for", { enum: ["lunch", "dinner", "any"] })
     .notNull()
     .default("any"),
+  dayAvailability: text("day_availability", {
+    enum: ["any", "weekdays_only", "weekends_only"],
+  })
+    .notNull()
+    .default("any"),
   createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
 });
