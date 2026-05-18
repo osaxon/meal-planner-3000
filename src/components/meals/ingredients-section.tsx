@@ -18,10 +18,11 @@ function IngredientRow({
 }) {
   const [editing, setEditing] = useState(false);
 
-  const deleteMutation = useMutation({
-    mutationFn: () => client.meals.ingredients.delete({ mealId, ingredientId: ingredient.id }),
-    onSuccess: onInvalidate,
-  });
+  const deleteMutation = useMutation(
+    orpc.meals.ingredients.delete.mutationOptions({
+      onSuccess: onInvalidate,
+    }),
+  );
 
   const form = useForm({
     defaultValues: {
@@ -121,7 +122,7 @@ function IngredientRow({
         size="sm"
         variant="ghost"
         className="h-7 px-2"
-        onClick={() => deleteMutation.mutate()}
+        onClick={() => deleteMutation.mutate({ mealId, ingredientId: ingredient.id })}
         disabled={deleteMutation.isPending}
       >
         Remove

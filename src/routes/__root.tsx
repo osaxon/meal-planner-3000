@@ -1,7 +1,7 @@
+import { TooltipProvider } from "#/components/ui/tooltip";
+import { TanStackDevtools } from "@tanstack/react-devtools";
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { TanStackDevtools } from "@tanstack/react-devtools";
-import { TooltipProvider } from "#/components/ui/tooltip";
 
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
@@ -48,7 +48,7 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <HeadContent />
       </head>

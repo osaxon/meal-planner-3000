@@ -1,7 +1,7 @@
-import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { orpc, client } from "#/orpc/client";
 import { Checkbox } from "#/components/ui/checkbox";
+import { orpc } from "#/orpc/client";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/shopping-list")({
   loader: ({ context }) =>
@@ -11,14 +11,34 @@ export const Route = createFileRoute("/_authenticated/shopping-list")({
 
 const LIST_KEY = () => orpc.schedule.getShoppingList.queryOptions().queryKey;
 
-function ShoppingListPage() {
+export const useShoppingList = () => {
   const queryClient = useQueryClient();
   const { data: items } = useSuspenseQuery(orpc.schedule.getShoppingList.queryOptions());
 
-  const toggle = useMutation({
-    mutationFn: (ingredientKey: string) => client.schedule.toggleShoppingItem({ ingredientKey }),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: LIST_KEY() }),
-  });
+  const toggleMutation = useMutation(
+    orpc.schedule.toggleShoppingItem.mutationOptions({
+      onSuccess: () => void queryClient.invalidateQueries({ queryKey: LIST_KEY() }),
+    }),
+  );
+
+  function formatQuantity(item: (typeof items)[number]) {
+    if (item.totalQuantity === null && item.unit === null) return null;
+    if (item.totalQuantity !== null && item.unit !== null)
+      return `${item.totalQuantity} ${item.unit}`;
+    if (item.totalQuantity !== null) return String(item.totalQuantity);
+    return item.unit;
+  }
+
+  return {
+    items,
+    formatQuantity,
+    toggle: (ingredientKey: string) => toggleMutation.mutate({ ingredientKey }),
+    isTogglePending: toggleMutation.isPending,
+  };
+};
+
+function ShoppingListPage() {
+  const { items, formatQuantity, toggle, isTogglePending } = useShoppingList();
 
   if (items.length === 0) {
     return (
@@ -38,14 +58,6 @@ function ShoppingListPage() {
   const unchecked = items.filter((i) => !i.checked);
   const checked = items.filter((i) => i.checked);
 
-  function formatQuantity(item: (typeof items)[number]) {
-    if (item.totalQuantity === null && item.unit === null) return null;
-    if (item.totalQuantity !== null && item.unit !== null)
-      return `${item.totalQuantity} ${item.unit}`;
-    if (item.totalQuantity !== null) return String(item.totalQuantity);
-    return item.unit;
-  }
-
   function ItemRow({ item }: { item: (typeof items)[number] }) {
     const qty = formatQuantity(item);
     return (
@@ -53,8 +65,8 @@ function ShoppingListPage() {
         <Checkbox
           id={item.ingredientKey}
           checked={item.checked}
-          disabled={toggle.isPending}
-          onCheckedChange={() => toggle.mutate(item.ingredientKey)}
+          disabled={isTogglePending}
+          onCheckedChange={() => toggle(item.ingredientKey)}
         />
         <label
           htmlFor={item.ingredientKey}

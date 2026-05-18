@@ -1,11 +1,16 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-
+import { drizzle } from "drizzle-orm/libsql";
+import { config } from "dotenv";
 import * as schema from "./schema";
 
-export type AppDb = ReturnType<typeof createDatabase>;
+config({ path: ".env.local" }); // or .env.local
 
-export function createDatabase(url: string) {
-  const sqlite = new Database(url);
-  return drizzle(sqlite, { schema });
-}
+export const createDatabase = () =>
+  drizzle({
+    connection: {
+      url: process.env.TURSO_CONNECTION_URL!,
+      authToken: process.env.TURSO_AUTH_TOKEN!,
+    },
+    schema,
+  });
+
+export type AppDb = ReturnType<typeof createDatabase>;

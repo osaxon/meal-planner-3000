@@ -1,5 +1,5 @@
 import type { Day } from "#/domains/preferences/preferences.zod";
-import { DAY_AVAILABILITY_PREDICATES } from "#/domains/meals/meals.zod";
+import { DAY_AVAILABILITY_PREDICATES } from "#/domains/meals/meals.rules";
 import { addDays, toDateKey, nextCalendarDayKey } from "#/lib/date-utils";
 import type {
   MealWithCategory,
@@ -26,7 +26,9 @@ const ELIGIBLE_SEASONS: Record<number, Set<MealWithCategory["season"]>> = {
   12: new Set(["year_round", "autumn_winter", "festive"]),
 };
 
-export function getEligibleSeasons(date: Date): Set<MealWithCategory["season"]> {
+export function getEligibleSeasons(
+  date: Date,
+): Set<MealWithCategory["season"]> {
   return ELIGIBLE_SEASONS[date.getUTCMonth() + 1]!;
 }
 
@@ -82,10 +84,15 @@ type RuleState = {
 };
 
 /** Returns true if the meal matches the Rule's subject. */
-function mealMatchesSubject(meal: MealWithCategory, rule: SchedulingRule): boolean {
+function mealMatchesSubject(
+  meal: MealWithCategory,
+  rule: SchedulingRule,
+): boolean {
   if (rule.subjectType === "diet") return meal.diet === rule.subjectValue;
-  if (rule.subjectType === "category") return meal.categoryId === rule.categoryId;
-  if (rule.subjectType === "tag") return meal.tags.includes(rule.subjectValue ?? "");
+  if (rule.subjectType === "category")
+    return meal.categoryId === rule.categoryId;
+  if (rule.subjectType === "tag")
+    return meal.tags.includes(rule.subjectValue ?? "");
   return false;
 }
 
@@ -94,7 +101,11 @@ function mealMatchesSubject(meal: MealWithCategory, rule: SchedulingRule): boole
  * Per-day rules check the count for the slot's calendar day; per-schedule rules check
  * the global count.
  */
-function exceedsAtMost(meal: MealWithCategory, states: RuleState[], slotDateKey: string): boolean {
+function exceedsAtMost(
+  meal: MealWithCategory,
+  states: RuleState[],
+  slotDateKey: string,
+): boolean {
   return states.some(({ rule, count, countsByDate }) => {
     if (rule.operator !== "at_most") return false;
     if (!mealMatchesSubject(meal, rule)) return false;
@@ -108,7 +119,10 @@ function exceedsAtMost(meal: MealWithCategory, states: RuleState[], slotDateKey:
 /** Increment the appropriate counter for a Rule after a meal is placed. */
 function incrementRuleCount(state: RuleState, slotDateKey: string): void {
   if (state.rule.scope === "per_day") {
-    state.countsByDate.set(slotDateKey, (state.countsByDate.get(slotDateKey) ?? 0) + 1);
+    state.countsByDate.set(
+      slotDateKey,
+      (state.countsByDate.get(slotDateKey) ?? 0) + 1,
+    );
   } else {
     state.count++;
   }
@@ -152,7 +166,9 @@ function pickMeal(
     const required = candidates.filter((m) =>
       states.some(
         ({ rule, count }) =>
-          rule.operator === "at_least" && count < rule.value && mealMatchesSubject(m, rule),
+          rule.operator === "at_least" &&
+          count < rule.value &&
+          mealMatchesSubject(m, rule),
       ),
     );
     if (required.length > 0) return required[0]!;
@@ -180,14 +196,18 @@ export class SchedulerService {
     }));
 
     // 3. Effective constraints
-    const maxLeftovers = config.maxLeftoverMealsOverride ?? preferences.maxLeftoverMeals;
+    const maxLeftovers =
+      config.maxLeftoverMealsOverride ?? preferences.maxLeftoverMeals;
 
     // 4. Filter eligible meals: no BBQ, season matches, not in previous schedule
     const eligibleSeasons = getEligibleSeasons(config.startDate);
     const previousIds = new Set(previousMealIds);
 
     const eligibleMeals = meals.filter(
-      (m) => m.season !== "bbq" && eligibleSeasons.has(m.season) && !previousIds.has(m.id),
+      (m) =>
+        m.season !== "bbq" &&
+        eligibleSeasons.has(m.season) &&
+        !previousIds.has(m.id),
     );
 
     if (eligibleMeals.length === 0) return result;
@@ -228,7 +248,15 @@ export class SchedulerService {
       // If all meals are used, reset uniqueness and try again (handles small pools)
       if (!meal && usedIds.size > 0) {
         usedIds.clear();
-        meal = pickMeal(pool, usedIds, slot.mealTime, slot.date, slotDateKey, ruleStates, restrict);
+        meal = pickMeal(
+          pool,
+          usedIds,
+          slot.mealTime,
+          slot.date,
+          slotDateKey,
+          ruleStates,
+          restrict,
+        );
       }
 
       if (!meal) continue; // all at_most rules exhausted — leave empty
@@ -237,7 +265,8 @@ export class SchedulerService {
       result[i] = { ...slot, type: "filled", mealId: meal.id };
       usedIds.add(meal.id);
       for (const state of ruleStates) {
-        if (mealMatchesSubject(meal, state.rule)) incrementRuleCount(state, slotDateKey);
+        if (mealMatchesSubject(meal, state.rule))
+          incrementRuleCount(state, slotDateKey);
       }
 
       // Place a leftover slot if applicable

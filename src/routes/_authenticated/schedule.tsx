@@ -1,10 +1,5 @@
-import { useQuery, useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { useForm } from "@tanstack/react-form";
-import { useState } from "react";
-import { orpc, client } from "#/orpc/client";
-import { addDays, toDateKey, formatDayHeader, indexSlotsByDateAndTime } from "#/lib/date-utils";
 import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import {
   Select,
@@ -13,16 +8,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "#/components/ui/select";
-import { Input } from "#/components/ui/input";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
-  SheetDescription,
 } from "#/components/ui/sheet";
-import type { ScheduleWithSlots, Slot } from "#/domains/schedule/schedule.zod";
 import type { MealWithCategory } from "#/domains/meals/meals.zod";
+import type { ScheduleWithSlots, Slot } from "#/domains/schedule/schedule.zod";
+import { addDays, formatDayHeader, indexSlotsByDateAndTime, toDateKey } from "#/lib/date-utils";
+import { client, orpc } from "#/orpc/client";
+import { useForm } from "@tanstack/react-form";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/schedule")({
   loader: ({ context }) =>
@@ -135,7 +135,9 @@ function SlotEditorSheet({
 
   const currentMealId = slot?.mealId ?? null;
   const form = useForm({
-    defaultValues: { mealId: currentMealId !== null ? String(currentMealId) : "empty" },
+    defaultValues: {
+      mealId: currentMealId !== null ? String(currentMealId) : "empty",
+    },
     onSubmit: async ({ value }) => {
       if (!slot) return;
       await mutation.mutateAsync({
@@ -333,7 +335,9 @@ function GenerateForm({ onSuccess }: { onSuccess: () => void }) {
       <div className="flex flex-wrap gap-4">
         <form.Field
           name="startDate"
-          validators={{ onChange: ({ value }) => (!value ? "Required" : undefined) }}
+          validators={{
+            onChange: ({ value }) => (!value ? "Required" : undefined),
+          }}
         >
           {(field) => (
             <div className="grid gap-1.5">
