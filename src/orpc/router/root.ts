@@ -1,13 +1,6 @@
 import { pub } from "..";
 import { listRules, createRule, updateRule, deleteRule } from "#/domains/rules/rules.router";
 import {
-  listFungi,
-  findFungus,
-  createFungus,
-  updateFungus,
-  deleteFungus,
-} from "#/domains/fungi/fungi.router";
-import {
   listCategories,
   createCategory,
   renameCategory,
@@ -33,13 +26,6 @@ import {
 } from "#/domains/meals/meals.router";
 
 const router = pub.router({
-  fungi: {
-    list: listFungi,
-    find: findFungus,
-    create: createFungus,
-    update: updateFungus,
-    delete: deleteFungus,
-  },
   rules: {
     list: listRules,
     create: createRule,

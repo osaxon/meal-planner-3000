@@ -1,6 +1,5 @@
 import { os } from "@orpc/server";
 import { db } from "#/db";
-import { FungiService } from "#/domains/fungi/fungi.service";
 import { CategoryService } from "#/domains/categories/categories.service";
 import { PreferencesService } from "#/domains/preferences/preferences.service";
 import { MealService } from "#/domains/meals/meals.service";
@@ -16,7 +15,6 @@ import type { BaseWideEvent } from "..";
 export const serviceProvider = os
   .$context<BaseWideEvent>()
   .middleware(async ({ context, next }) => {
-    let _fungiService: FungiService | undefined;
     let _categoryService: CategoryService | undefined;
     let _preferencesService: PreferencesService | undefined;
     let _mealService: MealService | undefined;
@@ -27,9 +25,6 @@ export const serviceProvider = os
     return next({
       context: {
         db,
-        get fungiService() {
-          return (_fungiService ??= new FungiService(db, context.wideEvent));
-        },
         get categoryService() {
           return (_categoryService ??= new CategoryService(db, context.wideEvent));
         },

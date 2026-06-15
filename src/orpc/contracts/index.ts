@@ -1,11 +1,4 @@
 import {
-  listFungiContract,
-  findFungusContract,
-  createFungusContract,
-  updateFungusContract,
-  deleteFungusContract,
-} from "#/domains/fungi/fungi.contract";
-import {
   listCategoriesContract,
   createCategoryContract,
   renameCategoryContract,
@@ -43,13 +36,6 @@ import {
 } from "#/domains/meals/meals.contract";
 
 export const contract = {
-  fungi: {
-    list: listFungiContract,
-    find: findFungusContract,
-    create: createFungusContract,
-    update: updateFungusContract,
-    delete: deleteFungusContract,
-  },
   categories: {
     list: listCategoriesContract,
     create: createCategoryContract,

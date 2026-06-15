@@ -5,7 +5,7 @@ description: Full-stack architecture guide — oRPC contract-first API design, d
 
 # Architecture Guide
 
-This project is a reusable template: oRPC + TanStack Start + Drizzle ORM + SQLite. Follow the existing `fungi` domain as the reference implementation for all new features.
+This project is a reusable template: oRPC + TanStack Start + Drizzle ORM + SQLite. Follow the existing `meals` domain as the reference implementation for all new features.
 
 ## Stack
 
@@ -13,7 +13,7 @@ oRPC (contract-first RPC), TanStack Start (React SSR), TanStack Router (file-bas
 
 ## Path Aliases
 
-Use `#/` for all imports (maps to `src/`). Within a domain folder, use relative imports for sibling files (e.g. `./fungi.zod`).
+Use `#/` for all imports (maps to `src/`). Within a domain folder, use relative imports for sibling files (e.g. `./meals.zod`).
 
 ## Project Structure
 
@@ -43,7 +43,7 @@ src/
 
 ## Adding a New Domain
 
-Follow these steps in order. Reference `src/domains/fungi/` as the example.
+Follow these steps in order. Reference `src/domains/meals/` as the example.
 
 ### 1. Schema — `src/db/schema.ts`
 
@@ -133,8 +133,8 @@ function fail(error: DomainError): never {
   throw new ORPCError(error.code);
 }
 
-export const createFungus = pub.fungi.create.handler(async ({ input, context }) => {
-  const result = await context.fungiService.create(input);
+export const createMeal = pub.meals.create.handler(async ({ input, context }) => {
+  const result = await context.mealService.create(input);
   if (!result.ok) fail(result.error);
   return result.value;
 });
@@ -225,8 +225,8 @@ type EventCollector<D, Extra> = {
 
 Two generics control type-safe event keys:
 
-- `D` — the domain string (e.g. `"fungi"`). Provides autocomplete for CRUD actions: `"fungi.created"`, `"fungi.updated"`, `"fungi.deleted"`.
-- `Extra` — optional union of domain-specific action strings (e.g. `"spore_analyzed"`). Adds `"fungi.spore_analyzed"` to the allowed keys.
+- `D` — the domain string (e.g. `"shopping-list"`). Provides autocomplete for CRUD actions: `"shopping-list.created"`, `"shopping-list.updated"`, `"shopping-list.deleted"`.
+- `Extra` — optional union of domain-specific action strings (e.g. `"item_toggled"`). Adds `"shopping-list.item_toggled"` to the allowed keys.
 
 When neither generic is provided (default `string`), any `"domain.action"` string is accepted — this is what the middleware uses.
 
@@ -250,12 +250,12 @@ Services depend on `EventCollector<Name, Events>` — the narrow interface, not 
 Each service defines `Name` and `Events` type aliases at the top and uses them to parameterize the collector:
 
 ```ts
-type Name = "fungi";
-type Events = "spores_dispersed" | "spores_released";
+type Name = "shopping-list";
+type Events = "item_toggled";
 
-export class FungiService {
+export class ShoppingListService {
   private readonly events: EventCollector<Name, Events>;
-  // Autocompletes: "fungi.created" | "fungi.updated" | "fungi.deleted" | "fungi.spores_dispersed" | "fungi.spores_released"
+  // Autocompletes: "shopping-list.created" | "shopping-list.updated" | "shopping-list.deleted" | "shopping-list.item_toggled"
 ```
 
 For CRUD-only domains, omit the `Events` type:
@@ -300,7 +300,7 @@ Wide event in tests: either omit it (constructor falls back to `noopCollector`) 
 
 - `type` over `interface`
 - Let functions infer return types
-- Domain files use `{domain}.{role}.ts` naming (e.g. `fungi.service.ts`, `fungi.zod.ts`, `fungi.contract.ts`, `fungi.router.ts`)
+- Domain files use `{domain}.{role}.ts` naming (e.g. `meals.service.ts`, `meals.zod.ts`, `meals.contract.ts`, `meals.router.ts`)
 - Within a domain folder, use relative imports for sibling files; use `#/` aliases for everything outside the domain
 - kebab-case for folder names, PascalCase for classes, camelCase for everything else
 - Drizzle tables stay in `src/db/schema.ts` (split to `src/db/schema/` when it grows)

@@ -62,7 +62,7 @@ async function callMiddleware(reqHeaders?: Headers) {
     context: {
       reqHeaders: reqHeaders ?? new Headers(),
       db: {} as any,
-      fungiService: {} as any,
+      scheduleService: {} as any,
     } as ContextWithServices,
   });
 }
@@ -128,7 +128,7 @@ describe("authMiddleware", () => {
       context: {
         reqHeaders: undefined,
         db: {} as any,
-        fungiService: {} as any,
+        scheduleService: {} as any,
       } as unknown as ContextWithServices,
     });
 

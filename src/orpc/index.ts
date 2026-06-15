@@ -7,7 +7,6 @@ import { loggingMiddleware } from "./middleware/logging";
 import type { LoggerContext } from "@orpc/experimental-pino";
 import type { AppDb } from "#/db/factory";
 import type { AuthSession, AuthUser } from "#/lib/auth";
-import type { FungiService } from "#/domains/fungi/fungi.service";
 import type { CategoryService } from "#/domains/categories/categories.service";
 import type { PreferencesService } from "#/domains/preferences/preferences.service";
 import type { MealService } from "#/domains/meals/meals.service";
@@ -29,7 +28,6 @@ export type BaseWideEvent = BaseContext & {
 /** Context after service-provider middleware — includes db and all services. */
 export type ContextWithServices = BaseWideEvent & {
   db: AppDb;
-  fungiService: FungiService;
   categoryService: CategoryService;
   preferencesService: PreferencesService;
   mealService: MealService;

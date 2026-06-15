@@ -2,17 +2,6 @@ import { sqliteTable, integer, text, real, uniqueIndex } from "drizzle-orm/sqlit
 import { sql } from "drizzle-orm";
 import { user } from "./auth-schema";
 
-export const fungi = sqliteTable("fungi", {
-  id: integer({ mode: "number" }).primaryKey({ autoIncrement: true }),
-  commonName: text("common_name").notNull(),
-  scientificName: text("scientific_name").notNull().unique(),
-  habitat: text().notNull(),
-  edible: integer({ mode: "boolean" }).notNull().default(false),
-  description: text(),
-  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-});
-
 export const categories = sqliteTable(
   "categories",
   {

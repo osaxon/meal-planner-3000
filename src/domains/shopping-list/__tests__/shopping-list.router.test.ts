@@ -25,7 +25,6 @@ vi.mock("#/domains/shopping-list/shopping-list.service", () => ({
 }));
 
 // Every other service the service-provider constructs must be mockable.
-vi.mock("#/domains/fungi/fungi.service", () => ({ FungiService: vi.fn() }));
 vi.mock("#/domains/categories/categories.service", () => ({ CategoryService: vi.fn() }));
 vi.mock("#/domains/preferences/preferences.service", () => ({ PreferencesService: vi.fn() }));
 vi.mock("#/domains/meals/meals.service", () => ({ MealService: vi.fn() }));

@@ -9,8 +9,8 @@ type CrudAction = "created" | "updated" | "deleted";
  * Base type provides CRUD actions. Services can extend with domain-specific
  * events by passing a union as `Extra`:
  *
- *   EventKey<"fungi">                          → "fungi.created" | "fungi.updated" | "fungi.deleted"
- *   EventKey<"fungi", "spore_analyzed">        → above + "fungi.spore_analyzed"
+ *   EventKey<"meals">                          → "meals.created" | "meals.updated" | "meals.deleted"
+ *   EventKey<"shopping-list", "item_toggled">  → above + "shopping-list.item_toggled"
  */
 export type EventKey<D extends string = string, Extra extends string = never> =
   | `${D}.${CrudAction}`
@@ -21,11 +21,11 @@ export type EventKey<D extends string = string, Extra extends string = never> =
 /**
  * Minimal interface that services depend on for observability.
  *
- * Services accept `EventCollector<"fungi">` instead of the concrete `WideEvent`.
+ * Services accept `EventCollector<"meals">` instead of the concrete `WideEvent`.
  * This keeps services decoupled from the collection/emission strategy.
  */
 export type EventCollector<D extends string = string, Extra extends string = never> = {
-  /** Append a structured detail using dot-notation keys (e.g. "fungi.created"). */
+  /** Append a structured detail using dot-notation keys (e.g. "meals.created"). */
   addDetail(key: EventKey<D, Extra>, value: unknown): void;
   /** Mark the event as failed with error info. */
   markFailed(code: string, message: string): void;
@@ -45,8 +45,8 @@ export const noopCollector: EventCollector = {
  *
  * Implements `EventCollector` — the narrow interface services depend on.
  * The middleware creates `WideEvent` (accepts any domain).
- * Services narrow via `EventCollector<"fungi">` for CRUD autocomplete,
- * or `EventCollector<"fungi", "spore_analyzed">` to add domain-specific keys.
+ * Services narrow via `EventCollector<"meals">` for CRUD autocomplete,
+ * or `EventCollector<"shopping-list", "item_toggled">` to add domain-specific keys.
  */
 export class WideEvent<
   D extends string = string,
@@ -67,7 +67,7 @@ export class WideEvent<
     this.data[key] = value;
   }
 
-  /** Append a structured detail using dot-notation keys (e.g. "fungi.created"). */
+  /** Append a structured detail using dot-notation keys (e.g. "meals.created"). */
   addDetail(key: EventKey<D, Extra>, value: unknown): void {
     this.details.push({ key, value });
   }
