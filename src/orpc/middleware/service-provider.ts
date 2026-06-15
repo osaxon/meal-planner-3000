@@ -40,7 +40,11 @@ export const serviceProvider = os
           return (_mealService ??= new MealService(db, context.wideEvent));
         },
         get scheduleService() {
-          return (_scheduleService ??= new ScheduleService(db, context.wideEvent));
+          return (_scheduleService ??= new ScheduleService(
+            db,
+            this.preferencesService,
+            context.wideEvent,
+          ));
         },
         get shoppingListService() {
           return (_shoppingListService ??= new ShoppingListService(

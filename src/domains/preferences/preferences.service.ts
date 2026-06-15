@@ -4,7 +4,7 @@ import { noopCollector } from "#/lib/wide-event";
 import { defaultSlotConfig, slotConfigSchema } from "./preferences.zod";
 import type { AppDb } from "#/db/factory";
 import type { EventCollector } from "#/lib/wide-event";
-import type { Preferences, PreferencesUpdate } from "./preferences.zod";
+import type { Preferences, PreferencesUpdate, SlotConfig } from "./preferences.zod";
 
 type Name = "preferences";
 
@@ -62,10 +62,23 @@ export class PreferencesService {
   }
 
   private deserialize(row: typeof householdPreferences.$inferSelect): Preferences {
-    const parsed = slotConfigSchema.safeParse(JSON.parse(row.slotConfig));
     return {
-      slotConfig: parsed.success ? parsed.data : defaultSlotConfig,
+      slotConfig: parseSlotConfig(row.slotConfig),
       maxLeftoverMeals: row.maxLeftoverMeals,
     };
+  }
+}
+
+/**
+ * The single source of truth for Slot Configuration deserialization. Silently
+ * falls back to defaults on malformed stored data — whether it is invalid JSON
+ * or valid JSON that doesn't match the schema (#35).
+ */
+function parseSlotConfig(raw: string): SlotConfig {
+  try {
+    const parsed = slotConfigSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : defaultSlotConfig;
+  } catch {
+    return defaultSlotConfig;
   }
 }

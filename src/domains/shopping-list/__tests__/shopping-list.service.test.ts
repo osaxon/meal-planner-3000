@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vite-plus/test";
 import { createTestDb, type TestDb } from "#/db/test-utils";
 import { user, categories, meals, mealIngredients } from "#/db/schema";
 import { ScheduleService } from "#/domains/schedule/schedule.service";
+import { PreferencesService } from "#/domains/preferences/preferences.service";
 import { ShoppingListService } from "../shopping-list.service";
 
 const TEST_USER = { id: "user-1", name: "Alice", email: "alice@example.com" };
@@ -14,7 +15,7 @@ let categoryId: number;
 
 beforeEach(async () => {
   db = await createTestDb();
-  scheduleService = new ScheduleService(db);
+  scheduleService = new ScheduleService(db, new PreferencesService(db));
   shopping = new ShoppingListService(db, scheduleService);
   await db.insert(user).values(TEST_USER);
   const [cat] = await db

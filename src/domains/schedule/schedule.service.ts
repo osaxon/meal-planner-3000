@@ -1,18 +1,27 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { schedules, slots, householdPreferences, schedulingRules } from "#/db/schema";
+import { schedules, slots, schedulingRules } from "#/db/schema";
 import { queryMealsWithTags } from "#/domains/meals/meals.queries";
 import { promoteAndInsertSchedule } from "./schedule-lifecycle";
 import { resolveLeftoverReferences } from "./leftover-resolver";
 import { noopCollector } from "#/lib/wide-event";
 import { SchedulerService } from "./scheduler.service";
-import { slotConfigSchema, defaultSlotConfig } from "#/domains/preferences/preferences.zod";
 import type { AppDb } from "#/db/factory";
 import type { EventCollector } from "#/lib/wide-event";
+import type { Preferences } from "#/domains/preferences/preferences.zod";
 import type { GenerateScheduleInput, ScheduleWithSlots, Slot } from "./schedule.zod";
 import type { DomainError, Result } from "#/lib/result";
 import { ok, err } from "#/lib/result";
 
 type Name = "schedule";
+
+/**
+ * The seam through which Schedule generation obtains Household Preferences —
+ * including get-with-default-upsert and Slot Configuration parsing. Satisfied
+ * by PreferencesService, so neither behaviour is duplicated here (#35).
+ */
+export type HouseholdPreferencesSource = {
+  get(userId: string): Promise<Preferences>;
+};
 
 export class ScheduleService {
   private readonly scheduler = new SchedulerService();
@@ -20,6 +29,7 @@ export class ScheduleService {
 
   constructor(
     private readonly db: AppDb,
+    private readonly preferences: HouseholdPreferencesSource,
     events?: EventCollector<Name>,
   ) {
     this.events = events ?? noopCollector;
@@ -46,21 +56,10 @@ export class ScheduleService {
       }
     }
 
-    // 3. Fetch preferences (upsert defaults if not exists)
-    let [prefs] = await this.db
-      .select()
-      .from(householdPreferences)
-      .where(eq(householdPreferences.userId, userId));
-
-    if (!prefs) {
-      [prefs] = await this.db.insert(householdPreferences).values({ userId }).returning();
-    }
-
-    const slotConfigParsed = slotConfigSchema.safeParse(JSON.parse(prefs!.slotConfig));
-    const preferences = {
-      slotConfig: slotConfigParsed.success ? slotConfigParsed.data : defaultSlotConfig,
-      maxLeftoverMeals: prefs!.maxLeftoverMeals,
-    };
+    // 3. Fetch preferences — the Preferences service owns get-with-default and
+    //    Slot Configuration parsing, so the Scheduler can't disagree with the
+    //    Preferences page about which days/meal times are active (#35).
+    const preferences = await this.preferences.get(userId);
 
     // 4. Fetch Scheduling Rules
     const rules = await this.db

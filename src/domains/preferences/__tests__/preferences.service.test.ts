@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 import { createTestDb, type TestDb } from "#/db/test-utils";
-import { user } from "#/db/schema";
+import { user, householdPreferences } from "#/db/schema";
 import { PreferencesService } from "../preferences.service";
 import { defaultSlotConfig } from "../preferences.zod";
 
@@ -28,6 +28,40 @@ describe("get", () => {
     const prefs = await service.get(TEST_USER.id);
 
     expect(prefs.maxLeftoverMeals).toBe(2);
+  });
+
+  it("falls back to the default slot config when stored JSON has an invalid shape", async () => {
+    await db.insert(householdPreferences).values({
+      userId: TEST_USER.id,
+      slotConfig: JSON.stringify({ monday: "nonsense", extra: true }),
+      maxLeftoverMeals: 4,
+    });
+
+    const prefs = await service.get(TEST_USER.id);
+
+    expect(prefs.slotConfig).toEqual(defaultSlotConfig);
+    expect(prefs.maxLeftoverMeals).toBe(4); // other fields are still honoured
+  });
+
+  it("falls back to the default slot config when stored data is not valid JSON", async () => {
+    await db
+      .insert(householdPreferences)
+      .values({ userId: TEST_USER.id, slotConfig: "not json at all", maxLeftoverMeals: 2 });
+
+    const prefs = await service.get(TEST_USER.id);
+
+    expect(prefs.slotConfig).toEqual(defaultSlotConfig);
+  });
+
+  it("preserves a well-formed stored slot config", async () => {
+    const stored = { ...defaultSlotConfig, monday: { lunch: true, dinner: true } };
+    await db
+      .insert(householdPreferences)
+      .values({ userId: TEST_USER.id, slotConfig: JSON.stringify(stored), maxLeftoverMeals: 2 });
+
+    const prefs = await service.get(TEST_USER.id);
+
+    expect(prefs.slotConfig).toEqual(stored);
   });
 });
 

@@ -3,6 +3,7 @@ import { createTestDb, type TestDb } from "#/db/test-utils";
 import { user, categories, meals, schedules, slots } from "#/db/schema";
 import { eq, and } from "drizzle-orm";
 import { ScheduleService } from "../schedule.service";
+import { PreferencesService } from "#/domains/preferences/preferences.service";
 import { resolveLeftoverReferences } from "../leftover-resolver";
 
 // Spy seam for failure injection: resolveLeftoverReferences runs inside the
@@ -26,7 +27,7 @@ const BASE_INPUT = { startDate: START_DATE, durationWeeks: 1 as const };
 
 beforeEach(async () => {
   db = await createTestDb();
-  service = new ScheduleService(db);
+  service = new ScheduleService(db, new PreferencesService(db));
   await db.insert(user).values(TEST_USER);
   const [cat] = await db
     .insert(categories)
