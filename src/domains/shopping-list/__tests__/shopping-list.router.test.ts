@@ -42,10 +42,6 @@ vi.mock("#/lib/auth", () => ({
   auth: { api: { getSession: vi.fn() } },
 }));
 
-// The service-provider imports the real db, which eagerly initialises the libsql
-// client from env. Mock it so router tests need no database connection.
-vi.mock("#/db", () => ({ db: {} }));
-
 const mockItem = {
   ingredientKey: "spaghetti",
   name: "Spaghetti",
