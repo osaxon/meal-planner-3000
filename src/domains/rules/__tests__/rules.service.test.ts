@@ -12,7 +12,7 @@ let service: RulesService;
 let categoryId: number;
 
 beforeEach(async () => {
-  db = createTestDb();
+  db = await createTestDb();
   service = new RulesService(db);
   await db.insert(user).values([USER_A, USER_B]);
   const [cat] = await db

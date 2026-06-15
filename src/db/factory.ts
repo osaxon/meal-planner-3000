@@ -15,3 +15,6 @@ export const createDatabase = () =>
   );
 
 export type AppDb = ReturnType<typeof createDatabase>;
+
+/** A transaction handle passed to `AppDb.transaction((tx) => …)` callbacks. */
+export type AppTx = Parameters<Parameters<AppDb["transaction"]>[0]>[0];

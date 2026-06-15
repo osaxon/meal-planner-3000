@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { schedules } from "#/db/schema";
-import type { AppDb } from "#/db/factory";
+import type { AppTx } from "#/db/factory";
 
 type NewScheduleValues = {
   userId: string;
@@ -10,7 +10,8 @@ type NewScheduleValues = {
 };
 
 type LifecycleInput = {
-  db: AppDb;
+  /** Runs inside the generation transaction so promote/discard/insert are atomic (#33). */
+  tx: AppTx;
   userId: string;
   /** ID of the existing previous Schedule to discard, or null if none exists. */
   prevScheduleId: number | null;
@@ -31,20 +32,20 @@ type LifecycleInput = {
 export async function promoteAndInsertSchedule(
   input: LifecycleInput,
 ): Promise<typeof schedules.$inferSelect> {
-  const { db, userId, prevScheduleId, existingActiveId, newScheduleValues } = input;
+  const { tx, userId, prevScheduleId, existingActiveId, newScheduleValues } = input;
 
   if (prevScheduleId !== null) {
-    await db.delete(schedules).where(eq(schedules.id, prevScheduleId));
+    await tx.delete(schedules).where(eq(schedules.id, prevScheduleId));
   }
 
   if (existingActiveId !== null) {
-    await db
+    await tx
       .update(schedules)
       .set({ status: "previous" })
       .where(and(eq(schedules.id, existingActiveId), eq(schedules.userId, userId)));
   }
 
-  const [newSchedule] = await db
+  const [newSchedule] = await tx
     .insert(schedules)
     .values({
       userId,

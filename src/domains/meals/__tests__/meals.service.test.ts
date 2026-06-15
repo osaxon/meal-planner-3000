@@ -18,7 +18,7 @@ const MEAL_INPUT = {
 };
 
 beforeEach(async () => {
-  db = createTestDb();
+  db = await createTestDb();
   service = new MealService(db);
   await db.insert(user).values([TEST_USER, OTHER_USER]);
   const [cat] = await db

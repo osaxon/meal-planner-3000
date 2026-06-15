@@ -1,12 +1,35 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "./schema";
 
-/** Creates a fresh in-memory SQLite database with the full app schema. */
-export function createTestDb() {
-  const sqlite = new Database(":memory:");
-  sqlite.exec(`
-    PRAGMA foreign_keys = ON;
+/**
+ * Creates a fresh in-memory database with the full app schema.
+ *
+ * Uses the same libsql client as production (ADR 0004, 0005) so tests run the
+ * real async transaction path — `db.transaction(async (tx) => …)` — rather than
+ * better-sqlite3's synchronous dialect. `TestDb` is therefore assignable to
+ * `AppDb`. Async because libsql schema setup (`executeMultiple`) is async.
+ *
+ * libsql opens a fresh connection per transaction, so a private `:memory:` DB
+ * (one DB per connection) loses its tables mid-test. `cache=shared` makes all
+ * connections share one in-memory DB. That DB is process-global and libsql
+ * can't name it, so we drop-and-recreate the schema on each call for isolation;
+ * Vitest runs each test file in its own worker, and `beforeEach` resets within.
+ */
+export async function createTestDb() {
+  const client = createClient({ url: "file::memory:?cache=shared" });
+  await client.executeMultiple(`
+    PRAGMA foreign_keys = OFF;
+    DROP TABLE IF EXISTS shopping_list_checks;
+    DROP TABLE IF EXISTS scheduling_rules;
+    DROP TABLE IF EXISTS household_preferences;
+    DROP TABLE IF EXISTS slots;
+    DROP TABLE IF EXISTS schedules;
+    DROP TABLE IF EXISTS meal_tags;
+    DROP TABLE IF EXISTS meal_ingredients;
+    DROP TABLE IF EXISTS meals;
+    DROP TABLE IF EXISTS categories;
+    DROP TABLE IF EXISTS user;
 
     CREATE TABLE user (
       id TEXT PRIMARY KEY,
@@ -101,8 +124,10 @@ export function createTestDb() {
       checked INTEGER NOT NULL DEFAULT 0,
       UNIQUE(schedule_id, ingredient_key)
     );
+
+    PRAGMA foreign_keys = ON;
   `);
-  return drizzle(sqlite, { schema });
+  return drizzle(client, { schema });
 }
 
-export type TestDb = ReturnType<typeof createTestDb>;
+export type TestDb = Awaited<ReturnType<typeof createTestDb>>;

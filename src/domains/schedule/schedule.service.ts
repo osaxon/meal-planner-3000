@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import {
   schedules,
   slots,
@@ -94,53 +94,81 @@ export class ScheduleService {
       rules,
     });
 
-    // 5. Persist: discard old previous, promote active → previous, insert new
-    const [existingActive] = await this.db
-      .select()
-      .from(schedules)
-      .where(and(eq(schedules.userId, userId), eq(schedules.status, "active")));
+    // 6. Persist atomically (#33): discard old previous → promote active →
+    //    insert Schedule → insert Slots → resolve Leftover references, all in
+    //    one transaction so a mid-sequence failure leaves the household's
+    //    active and previous Schedules exactly as they were.
+    const { newSchedule, insertedSlots } = await this.db.transaction(async (tx) => {
+      const [existingActive] = await tx
+        .select()
+        .from(schedules)
+        .where(and(eq(schedules.userId, userId), eq(schedules.status, "active")));
 
-    const newSchedule = await promoteAndInsertSchedule({
-      db: this.db,
-      userId,
-      prevScheduleId: prevSchedule?.id ?? null,
-      existingActiveId: existingActive?.id ?? null,
-      newScheduleValues: { userId, ...input },
+      const newSchedule = await promoteAndInsertSchedule({
+        tx,
+        userId,
+        prevScheduleId: prevSchedule?.id ?? null,
+        existingActiveId: existingActive?.id ?? null,
+        newScheduleValues: { userId, ...input },
+      });
+
+      // Insert all slots (leftover sourceSlotId = null initially)
+      const insertedSlots =
+        generatedSlots.length > 0
+          ? await tx
+              .insert(slots)
+              .values(
+                generatedSlots.map((s) => ({
+                  scheduleId: newSchedule.id,
+                  date: s.date,
+                  mealTime: s.mealTime,
+                  type: s.type,
+                  mealId: s.mealId ?? null,
+                  sourceSlotId: null,
+                })),
+              )
+              .returning()
+          : [];
+
+      // Resolve leftover sourceSlotId references in a single batched UPDATE
+      // (one CASE statement) rather than one update per Leftover Slot.
+      const leftoverRefs = resolveLeftoverReferences(
+        generatedSlots,
+        insertedSlots.map((s) => s.id),
+      );
+
+      if (leftoverRefs.length > 0) {
+        const cases = sql.join(
+          leftoverRefs.map((r) => sql`when ${r.leftoverDbId} then ${r.sourceSlotId}`),
+          sql.raw(" "),
+        );
+        await tx
+          .update(slots)
+          .set({ sourceSlotId: sql`case ${slots.id} ${cases} end` })
+          .where(
+            inArray(
+              slots.id,
+              leftoverRefs.map((r) => r.leftoverDbId),
+            ),
+          );
+
+        const sourceById = new Map(leftoverRefs.map((r) => [r.leftoverDbId, r.sourceSlotId]));
+        for (let i = 0; i < insertedSlots.length; i++) {
+          const sourceSlotId = sourceById.get(insertedSlots[i]!.id);
+          if (sourceSlotId !== undefined) {
+            insertedSlots[i] = { ...insertedSlots[i]!, sourceSlotId };
+          }
+        }
+      }
+
+      return { newSchedule, insertedSlots };
     });
-
-    // Insert all slots (leftover sourceSlotId = null initially)
-    const insertedSlots =
-      generatedSlots.length > 0
-        ? await this.db
-            .insert(slots)
-            .values(
-              generatedSlots.map((s) => ({
-                scheduleId: newSchedule.id,
-                date: s.date,
-                mealTime: s.mealTime,
-                type: s.type,
-                mealId: s.mealId ?? null,
-                sourceSlotId: null,
-              })),
-            )
-            .returning()
-        : [];
-
-    // Resolve leftover sourceSlotId references and persist
-    const insertedIds = insertedSlots.map((s) => s.id);
-    const leftoverRefs = resolveLeftoverReferences(generatedSlots, insertedIds);
-
-    for (const { leftoverDbId, sourceSlotId } of leftoverRefs) {
-      await this.db.update(slots).set({ sourceSlotId }).where(eq(slots.id, leftoverDbId));
-      const idx = insertedSlots.findIndex((s) => s.id === leftoverDbId);
-      if (idx !== -1) insertedSlots[idx] = { ...insertedSlots[idx]!, sourceSlotId };
-    }
 
     this.events.addDetail("schedule.created", {
-      id: newSchedule!.id,
+      id: newSchedule.id,
       slots: generatedSlots.length,
     });
-    return { ...newSchedule!, slots: insertedSlots };
+    return { ...newSchedule, slots: insertedSlots };
   }
 
   async updateSlot(

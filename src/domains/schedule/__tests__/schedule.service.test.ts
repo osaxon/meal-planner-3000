@@ -1,8 +1,17 @@
-import { beforeEach, describe, expect, it } from "vite-plus/test";
+import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { createTestDb, type TestDb } from "#/db/test-utils";
 import { user, categories, meals, schedules, slots } from "#/db/schema";
 import { eq, and } from "drizzle-orm";
 import { ScheduleService } from "../schedule.service";
+import { resolveLeftoverReferences } from "../leftover-resolver";
+
+// Spy seam for failure injection: resolveLeftoverReferences runs inside the
+// generation transaction, after the destructive promote/discard + slot insert.
+// Forcing it to throw simulates a mid-sequence "network blip to remote DB".
+vi.mock("../leftover-resolver", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../leftover-resolver")>();
+  return { ...actual, resolveLeftoverReferences: vi.fn(actual.resolveLeftoverReferences) };
+});
 
 const TEST_USER = { id: "user-1", name: "Alice", email: "alice@example.com" };
 
@@ -16,7 +25,7 @@ const START_DATE = new Date("2024-01-01");
 const BASE_INPUT = { startDate: START_DATE, durationWeeks: 1 as const };
 
 beforeEach(async () => {
-  db = createTestDb();
+  db = await createTestDb();
   service = new ScheduleService(db);
   await db.insert(user).values(TEST_USER);
   const [cat] = await db
@@ -145,6 +154,34 @@ describe("generate", () => {
     });
 
     expect(result.maxLeftoverMealsOverride).toBe(5);
+  });
+
+  it("leaves previous and active schedules untouched when persistence fails mid-transaction", async () => {
+    await seedMeals(21);
+    const first = await service.generate(TEST_USER.id, BASE_INPUT); // active = first
+    const second = await service.generate(TEST_USER.id, BASE_INPUT); // previous = first, active = second
+
+    const before = await db.select().from(schedules).where(eq(schedules.userId, TEST_USER.id));
+    const beforeSlotIds = (await db.select().from(slots)).map((s) => s.id).sort((a, b) => a - b);
+
+    // Fail the next generate after the destructive promote/discard + slot insert.
+    vi.mocked(resolveLeftoverReferences).mockImplementationOnce(() => {
+      throw new Error("network blip to remote database");
+    });
+
+    await expect(service.generate(TEST_USER.id, BASE_INPUT)).rejects.toThrow("network blip");
+
+    // The whole persistence phase rolled back: schedules and slots are byte-for-byte unchanged.
+    const after = await db.select().from(schedules).where(eq(schedules.userId, TEST_USER.id));
+    expect(after).toHaveLength(2);
+    expect(after.find((s) => s.status === "active")!.id).toBe(second.id);
+    expect(after.find((s) => s.status === "previous")!.id).toBe(first.id);
+    expect(after.map((s) => ({ id: s.id, status: s.status }))).toEqual(
+      before.map((s) => ({ id: s.id, status: s.status })),
+    );
+
+    const afterSlotIds = (await db.select().from(slots)).map((s) => s.id).sort((a, b) => a - b);
+    expect(afterSlotIds).toEqual(beforeSlotIds);
   });
 });
 

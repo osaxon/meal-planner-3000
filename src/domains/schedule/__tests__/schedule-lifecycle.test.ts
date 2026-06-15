@@ -16,7 +16,7 @@ const BASE_VALUES = {
 let db: TestDb;
 
 beforeEach(async () => {
-  db = createTestDb();
+  db = await createTestDb();
   await db.insert(user).values(TEST_USER);
 });
 
@@ -29,10 +29,14 @@ async function findByStatus(status: "active" | "previous") {
   return rows.find((r) => r.status === status) ?? null;
 }
 
+/** Run promoteAndInsertSchedule inside a transaction, mirroring production usage (#33). */
+function promote(args: Omit<Parameters<typeof promoteAndInsertSchedule>[0], "tx">) {
+  return db.transaction((tx) => promoteAndInsertSchedule({ tx, ...args }));
+}
+
 describe("promoteAndInsertSchedule", () => {
   it("inserts a new active schedule when none exist", async () => {
-    const result = await promoteAndInsertSchedule({
-      db,
+    const result = await promote({
       userId: TEST_USER.id,
       prevScheduleId: null,
       existingActiveId: null,
@@ -45,16 +49,14 @@ describe("promoteAndInsertSchedule", () => {
   });
 
   it("promotes the active schedule to previous when generating a second schedule", async () => {
-    const first = await promoteAndInsertSchedule({
-      db,
+    const first = await promote({
       userId: TEST_USER.id,
       prevScheduleId: null,
       existingActiveId: null,
       newScheduleValues: BASE_VALUES,
     });
 
-    await promoteAndInsertSchedule({
-      db,
+    await promote({
       userId: TEST_USER.id,
       prevScheduleId: null,
       existingActiveId: first.id,
@@ -70,24 +72,21 @@ describe("promoteAndInsertSchedule", () => {
   });
 
   it("discards the old previous and promotes the active on a third generate", async () => {
-    const first = await promoteAndInsertSchedule({
-      db,
+    const first = await promote({
       userId: TEST_USER.id,
       prevScheduleId: null,
       existingActiveId: null,
       newScheduleValues: BASE_VALUES,
     });
 
-    const second = await promoteAndInsertSchedule({
-      db,
+    const second = await promote({
       userId: TEST_USER.id,
       prevScheduleId: null,
       existingActiveId: first.id,
       newScheduleValues: BASE_VALUES,
     });
 
-    await promoteAndInsertSchedule({
-      db,
+    await promote({
       userId: TEST_USER.id,
       prevScheduleId: first.id,
       existingActiveId: second.id,
@@ -103,8 +102,7 @@ describe("promoteAndInsertSchedule", () => {
   });
 
   it("stores per-schedule override values on the inserted record", async () => {
-    const result = await promoteAndInsertSchedule({
-      db,
+    const result = await promote({
       userId: TEST_USER.id,
       prevScheduleId: null,
       existingActiveId: null,

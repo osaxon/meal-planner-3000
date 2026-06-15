@@ -10,7 +10,7 @@ let db: TestDb;
 let categoryId: number;
 
 beforeEach(async () => {
-  db = createTestDb();
+  db = await createTestDb();
   await db.insert(user).values([USER_A, USER_B]);
   const [cat] = await db
     .insert(categories)

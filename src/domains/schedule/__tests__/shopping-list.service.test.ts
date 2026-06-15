@@ -11,7 +11,7 @@ let service: ScheduleService;
 let categoryId: number;
 
 beforeEach(async () => {
-  db = createTestDb();
+  db = await createTestDb();
   service = new ScheduleService(db);
   await db.insert(user).values(TEST_USER);
   const [cat] = await db

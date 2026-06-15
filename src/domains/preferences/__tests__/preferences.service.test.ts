@@ -10,7 +10,7 @@ let db: TestDb;
 let service: PreferencesService;
 
 beforeEach(async () => {
-  db = createTestDb();
+  db = await createTestDb();
   service = new PreferencesService(db);
   await db.insert(user).values(TEST_USER);
 });

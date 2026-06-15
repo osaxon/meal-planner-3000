@@ -10,7 +10,7 @@ let db: TestDb;
 let service: CategoryService;
 
 beforeEach(async () => {
-  db = createTestDb();
+  db = await createTestDb();
   service = new CategoryService(db);
   await db.insert(user).values([TEST_USER, OTHER_USER]);
 });
