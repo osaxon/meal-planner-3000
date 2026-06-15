@@ -83,11 +83,32 @@ const DEC_MONDAY = new Date("2024-12-02");
 
 const scheduler = new SchedulerService();
 
+// ── Deterministic random sources ──────────────────────────────────────────────
+
+/** Seeded PRNG (mulberry32) — deterministic shuffled order for a given seed. */
+function seededRng(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * rng that makes the Fisher-Yates shuffle a no-op (j === i on every step), so the
+ * pool keeps the input meal order. Lets placement tests assert exact slot assignments.
+ */
+const keepOrder = () => 1 - Number.EPSILON;
+
 function run(
   meals: MealWithCategory[],
   prefsOverride: Partial<Preferences> = {},
   configOverride: Partial<ScheduleConfig> = {},
   rules: SchedulingRule[] = [],
+  rng: () => number = seededRng(42),
 ): GeneratedSlot[] {
   return scheduler.generate({
     meals,
@@ -99,6 +120,7 @@ function run(
       ...configOverride,
     },
     rules,
+    rng,
   });
 }
 
@@ -295,6 +317,7 @@ describe("previous schedule exclusion", () => {
       preferences: makePrefs(),
       config: { startDate: JAN_MONDAY, durationWeeks: 1 },
       rules: [],
+      rng: seededRng(42),
     });
 
     const filledIds = result.filter((s) => s.type === "filled").map((s) => s.mealId);
@@ -310,6 +333,7 @@ describe("previous schedule exclusion", () => {
       preferences: makePrefs(),
       config: { startDate: JAN_MONDAY, durationWeeks: 1 },
       rules: [],
+      rng: seededRng(42),
     });
 
     const filled = result.filter((s) => s.type === "filled");
@@ -424,20 +448,17 @@ describe("rule evaluation — at_least (best-effort)", () => {
 // ── Leftover slot placement ───────────────────────────────────────────────────
 
 describe("leftover placement", () => {
-  it("assigns a leftover slot within the next 1–2 slots for a meal with producesLeftovers", () => {
+  it("assigns a leftover slot for a meal with producesLeftovers", () => {
+    // keepOrder: meal 1 (producesLeftovers) takes the first slot (Monday dinner)
     const meals = Array.from({ length: 7 }, (_, i) =>
       makeMeal(i + 1, { producesLeftovers: i === 0 }),
     );
-    const result = run(meals, { maxLeftoverMeals: 99 });
+    const result = run(meals, { maxLeftoverMeals: 99 }, {}, [], keepOrder);
 
-    const filledIdx = result.findIndex((s) => s.type === "filled" && s.mealId === 1);
-    if (filledIdx === -1) return; // meal 1 may not have been picked first, skip
-    const leftoverIdx = result.findIndex((s) => s.type === "leftover" && s.mealId === 1);
-    if (leftoverIdx === -1) return; // might not have been placed if no adjacent empty slot
-
-    expect(leftoverIdx - filledIdx).toBeGreaterThanOrEqual(1);
-    expect(leftoverIdx - filledIdx).toBeLessThanOrEqual(2);
-    expect(result[leftoverIdx]!.sourceSlotIndex).toBe(filledIdx);
+    // Monday dinner is filled with meal 1; its leftover lands on Tuesday dinner
+    // (next-day lunch is not an enabled slot in ALL_DINNERS)
+    expect(result[0]).toMatchObject({ type: "filled", mealId: 1 });
+    expect(result[1]).toMatchObject({ type: "leftover", mealId: 1, sourceSlotIndex: 0 });
   });
 
   it("does not exceed maxLeftoverMeals", () => {
@@ -465,8 +486,10 @@ describe("leftover placement", () => {
       preferences: makePrefs({ maxLeftoverMeals: 99, slotConfig: ALL_LUNCHES_AND_DINNERS }),
       config: { startDate: JAN_MONDAY, durationWeeks: 1 },
       rules: [],
+      rng: keepOrder,
     });
 
+    expect(result.filter((s) => s.type === "leftover").length).toBeGreaterThan(0);
     for (const slot of result.filter((s) => s.type === "leftover")) {
       const sourceSlot = result[slot.sourceSlotIndex!];
       expect(sourceSlot).toBeDefined();
@@ -491,6 +514,7 @@ describe("combined constraints", () => {
       preferences: makePrefs({ slotConfig: MONDAY_ONLY_DINNERS }),
       config: { startDate: JAN_MONDAY, durationWeeks: 2 }, // 2 slots total (2 Mondays)
       rules: [dietRule("meat", "at_most", 1)],
+      rng: seededRng(42),
     });
 
     const filledIds = new Set(result.filter((s) => s.type === "filled").map((s) => s.mealId));
@@ -571,7 +595,8 @@ describe("meal suitability", () => {
   });
 
   it("leftovers of a dinner-only meal can appear in a lunch slot (ADR 0002)", () => {
-    // One dinner-only meal that produces leftovers, enough filler for other slots
+    // keepOrder: the dinner-only meal is first in pool order, so it takes the first
+    // dinner slot (Monday dinner, index 1) and its leftover targets Tuesday lunch.
     const leftoverMeal = makeMeal(1, {
       suitableFor: "dinner",
       producesLeftovers: true,
@@ -583,20 +608,21 @@ describe("meal suitability", () => {
       preferences: makePrefs({ maxLeftoverMeals: 99, slotConfig: ALL_LUNCHES_AND_DINNERS }),
       config: { startDate: JAN_MONDAY, durationWeeks: 1 },
       rules: [],
+      rng: keepOrder,
     });
 
-    const leftoverSlots = result.filter(
-      (s) => s.type === "leftover" && s.mealId === leftoverMeal.id,
-    );
-
-    // If the leftover-producing meal was assigned (it may or may not be in a shuffled pool),
-    // any leftover slots for it must be allowed to be lunch slots
-    for (const ls of leftoverSlots) {
-      // A leftover slot can be lunch even though the source meal is dinner-only
-      const sourceSlot = result[ls.sourceSlotIndex!]!;
-      expect(sourceSlot.type).toBe("filled");
-      expect(sourceSlot.mealId).toBe(leftoverMeal.id);
-    }
+    expect(result[1]).toMatchObject({
+      type: "filled",
+      mealId: leftoverMeal.id,
+      mealTime: "dinner",
+    });
+    // The leftover lands in a lunch slot even though the source meal is dinner-only
+    expect(result[2]).toMatchObject({
+      type: "leftover",
+      mealId: leftoverMeal.id,
+      mealTime: "lunch",
+      sourceSlotIndex: 1,
+    });
   });
 });
 
@@ -707,19 +733,20 @@ describe("meal day availability", () => {
       preferences: makePrefs({ maxLeftoverMeals: 99, slotConfig: FRIDAY_ONLY_DINNERS }),
       config: { startDate: JAN_MONDAY, durationWeeks: 1 },
       rules: [],
+      rng: keepOrder,
     });
 
-    // Friday slot should be filled with the weekdays_only meal
-    const fridayFilled = result.find(
-      (s) => s.type === "filled" && s.mealId === weekdayMeal.id && s.date.getUTCDay() === 5,
-    );
-    if (!fridayFilled) return; // meal may not have been picked — skip
+    // keepOrder: the weekdays_only meal takes the Friday dinner slot (index 0)
+    expect(result[0]!.date.getUTCDay()).toBe(5);
+    expect(result[0]).toMatchObject({ type: "filled", mealId: weekdayMeal.id });
 
-    // Its leftover on Saturday is allowed despite weekdays_only
-    const saturdayLeftover = result.find(
-      (s) => s.type === "leftover" && s.mealId === weekdayMeal.id && s.date.getUTCDay() === 6,
-    );
-    expect(saturdayLeftover).toBeDefined();
+    // Its leftover lands on Saturday despite weekdays_only
+    expect(result[1]!.date.getUTCDay()).toBe(6);
+    expect(result[1]).toMatchObject({
+      type: "leftover",
+      mealId: weekdayMeal.id,
+      sourceSlotIndex: 0,
+    });
   });
 });
 
@@ -737,38 +764,29 @@ describe("leftover targeting", () => {
       makeMeal(i + 2, { suitableFor: "any", diet: "vegetarian" }),
     );
 
-    // Run multiple times to account for shuffle — the leftover meal must eventually be placed
-    let foundNextDayLunch = false;
-    for (let attempt = 0; attempt < 20 && !foundNextDayLunch; attempt++) {
-      const result = scheduler.generate({
-        meals: [leftoverMeal, ...fillers],
-        previousMealIds: [],
-        preferences: makePrefs({ maxLeftoverMeals: 99, slotConfig: ALL_LUNCHES_AND_DINNERS }),
-        config: { startDate: JAN_MONDAY, durationWeeks: 1 },
-        rules: [],
-      });
+    // keepOrder: the dinner-only meal takes Monday dinner (index 1);
+    // its leftover must target Tuesday's lunch slot (index 2)
+    const result = scheduler.generate({
+      meals: [leftoverMeal, ...fillers],
+      previousMealIds: [],
+      preferences: makePrefs({ maxLeftoverMeals: 99, slotConfig: ALL_LUNCHES_AND_DINNERS }),
+      config: { startDate: JAN_MONDAY, durationWeeks: 1 },
+      rules: [],
+      rng: keepOrder,
+    });
 
-      const sourceIdx = result.findIndex(
-        (s) => s.type === "filled" && s.mealId === leftoverMeal.id && s.mealTime === "dinner",
-      );
-      if (sourceIdx === -1) continue;
-
-      const sourceDate = result[sourceIdx]!.date;
-      const nextDay = new Date(sourceDate);
-      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-      const nextDayKey = nextDay.toISOString().slice(0, 10);
-
-      const leftoverSlot = result.find(
-        (s) =>
-          s.type === "leftover" &&
-          s.mealId === leftoverMeal.id &&
-          s.mealTime === "lunch" &&
-          s.date.toISOString().slice(0, 10) === nextDayKey,
-      );
-      if (leftoverSlot) foundNextDayLunch = true;
-    }
-
-    expect(foundNextDayLunch).toBe(true);
+    expect(result[1]).toMatchObject({
+      type: "filled",
+      mealId: leftoverMeal.id,
+      mealTime: "dinner",
+    });
+    expect(result[2]).toMatchObject({
+      type: "leftover",
+      mealId: leftoverMeal.id,
+      mealTime: "lunch",
+      sourceSlotIndex: 1,
+    });
+    expect(toDateKey(result[2]!.date)).toBe("2024-01-02");
   });
 
   it("falls back to next-day dinner when no lunch slot is available on the next day", () => {
@@ -781,38 +799,26 @@ describe("leftover targeting", () => {
       makeMeal(i + 2, { suitableFor: "dinner", diet: "vegetarian" }),
     );
 
-    let foundNextDayDinner = false;
-    for (let attempt = 0; attempt < 20 && !foundNextDayDinner; attempt++) {
-      const result = scheduler.generate({
-        meals: [leftoverMeal, ...fillers],
-        previousMealIds: [],
-        // Dinners only — no lunch slots available to target
-        preferences: makePrefs({ maxLeftoverMeals: 99, slotConfig: ALL_DINNERS }),
-        config: { startDate: JAN_MONDAY, durationWeeks: 1 },
-        rules: [],
-      });
+    // keepOrder: the leftover meal takes Monday dinner (index 0); with no lunch
+    // slots enabled, its leftover falls back to Tuesday's dinner slot (index 1)
+    const result = scheduler.generate({
+      meals: [leftoverMeal, ...fillers],
+      previousMealIds: [],
+      // Dinners only — no lunch slots available to target
+      preferences: makePrefs({ maxLeftoverMeals: 99, slotConfig: ALL_DINNERS }),
+      config: { startDate: JAN_MONDAY, durationWeeks: 1 },
+      rules: [],
+      rng: keepOrder,
+    });
 
-      const sourceIdx = result.findIndex(
-        (s) => s.type === "filled" && s.mealId === leftoverMeal.id,
-      );
-      if (sourceIdx === -1) continue;
-
-      const sourceDate = result[sourceIdx]!.date;
-      const nextDay = new Date(sourceDate);
-      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
-      const nextDayKey = nextDay.toISOString().slice(0, 10);
-
-      const leftoverSlot = result.find(
-        (s) =>
-          s.type === "leftover" &&
-          s.mealId === leftoverMeal.id &&
-          s.mealTime === "dinner" &&
-          s.date.toISOString().slice(0, 10) === nextDayKey,
-      );
-      if (leftoverSlot) foundNextDayDinner = true;
-    }
-
-    expect(foundNextDayDinner).toBe(true);
+    expect(result[0]).toMatchObject({ type: "filled", mealId: leftoverMeal.id });
+    expect(result[1]).toMatchObject({
+      type: "leftover",
+      mealId: leftoverMeal.id,
+      mealTime: "dinner",
+      sourceSlotIndex: 0,
+    });
+    expect(toDateKey(result[1]!.date)).toBe("2024-01-02");
   });
 
   it("falls back to 1–2 position logic when no next-day slots exist at all", () => {
@@ -830,17 +836,18 @@ describe("leftover targeting", () => {
       preferences: makePrefs({ maxLeftoverMeals: 99, slotConfig: MONDAY_ONLY_DINNERS }),
       config: { startDate: JAN_MONDAY, durationWeeks: 2 }, // two Monday slots
       rules: [],
+      rng: keepOrder,
     });
 
-    const sourceIdx = result.findIndex((s) => s.type === "filled" && s.mealId === leftoverMeal.id);
-    // If placed, the fallback must have been used — leftover at i+1 or i+2
-    if (sourceIdx !== -1) {
-      const leftoverIdx = result.findIndex((s) => s.type === "leftover");
-      if (leftoverIdx !== -1) {
-        expect(leftoverIdx - sourceIdx).toBeGreaterThanOrEqual(1);
-        expect(leftoverIdx - sourceIdx).toBeLessThanOrEqual(2);
-      }
-    }
+    // keepOrder: the leftover meal takes the first Monday (index 0). The next
+    // calendar day has no slots, so the leftover falls back to position logic
+    // and lands on the second Monday (index 1).
+    expect(result[0]).toMatchObject({ type: "filled", mealId: leftoverMeal.id });
+    expect(result[1]).toMatchObject({
+      type: "leftover",
+      mealId: leftoverMeal.id,
+      sourceSlotIndex: 0,
+    });
   });
 });
 
@@ -958,5 +965,33 @@ describe("per-day Rule scope", () => {
     expect(withPerDay.filter((s) => s.type === "filled").length).toBe(
       noRule.filter((s) => s.type === "filled").length,
     );
+  });
+});
+
+// ── Determinism ───────────────────────────────────────────────────────────────
+
+describe("determinism", () => {
+  function generateWith(rng: () => number): GeneratedSlot[] {
+    const meals = Array.from({ length: 10 }, (_, i) =>
+      makeMeal(i + 1, { producesLeftovers: i % 3 === 0 }),
+    );
+    return scheduler.generate({
+      meals,
+      previousMealIds: [],
+      preferences: makePrefs({ maxLeftoverMeals: 2, slotConfig: ALL_LUNCHES_AND_DINNERS }),
+      config: { startDate: JAN_MONDAY, durationWeeks: 2 },
+      rules: [dietRule("meat", "at_most", 20)],
+      rng,
+    });
+  }
+
+  it("produces an identical schedule for identical input and seed", () => {
+    expect(generateWith(seededRng(7))).toEqual(generateWith(seededRng(7)));
+  });
+
+  it("the random source influences meal ordering", () => {
+    const idsA = generateWith(seededRng(1)).map((s) => s.mealId);
+    const idsB = generateWith(seededRng(2)).map((s) => s.mealId);
+    expect(idsA).not.toEqual(idsB);
   });
 });

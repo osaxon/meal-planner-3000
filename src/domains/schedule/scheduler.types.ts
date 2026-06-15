@@ -25,6 +25,8 @@ export type SchedulerInput = {
   preferences: Preferences;
   config: ScheduleConfig;
   rules: SchedulingRule[];
+  /** Random source in [0, 1) used to shuffle the meal pool. Defaults to Math.random. */
+  rng?: () => number;
 };
 
 export type GeneratedSlot = {

@@ -26,9 +26,7 @@ const ELIGIBLE_SEASONS: Record<number, Set<MealWithCategory["season"]>> = {
   12: new Set(["year_round", "autumn_winter", "festive"]),
 };
 
-export function getEligibleSeasons(
-  date: Date,
-): Set<MealWithCategory["season"]> {
+export function getEligibleSeasons(date: Date): Set<MealWithCategory["season"]> {
   return ELIGIBLE_SEASONS[date.getUTCMonth() + 1]!;
 }
 
@@ -66,10 +64,10 @@ function generateSlotFrames(
 
 // ── Meal selection ────────────────────────────────────────────────────────────
 
-function shuffle<T>(arr: T[]): T[] {
+function shuffle<T>(arr: T[], rng: () => number): T[] {
   const out = [...arr];
   for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rng() * (i + 1));
     [out[i], out[j]] = [out[j]!, out[i]!];
   }
   return out;
@@ -84,15 +82,10 @@ type RuleState = {
 };
 
 /** Returns true if the meal matches the Rule's subject. */
-function mealMatchesSubject(
-  meal: MealWithCategory,
-  rule: SchedulingRule,
-): boolean {
+function mealMatchesSubject(meal: MealWithCategory, rule: SchedulingRule): boolean {
   if (rule.subjectType === "diet") return meal.diet === rule.subjectValue;
-  if (rule.subjectType === "category")
-    return meal.categoryId === rule.categoryId;
-  if (rule.subjectType === "tag")
-    return meal.tags.includes(rule.subjectValue ?? "");
+  if (rule.subjectType === "category") return meal.categoryId === rule.categoryId;
+  if (rule.subjectType === "tag") return meal.tags.includes(rule.subjectValue ?? "");
   return false;
 }
 
@@ -101,11 +94,7 @@ function mealMatchesSubject(
  * Per-day rules check the count for the slot's calendar day; per-schedule rules check
  * the global count.
  */
-function exceedsAtMost(
-  meal: MealWithCategory,
-  states: RuleState[],
-  slotDateKey: string,
-): boolean {
+function exceedsAtMost(meal: MealWithCategory, states: RuleState[], slotDateKey: string): boolean {
   return states.some(({ rule, count, countsByDate }) => {
     if (rule.operator !== "at_most") return false;
     if (!mealMatchesSubject(meal, rule)) return false;
@@ -119,10 +108,7 @@ function exceedsAtMost(
 /** Increment the appropriate counter for a Rule after a meal is placed. */
 function incrementRuleCount(state: RuleState, slotDateKey: string): void {
   if (state.rule.scope === "per_day") {
-    state.countsByDate.set(
-      slotDateKey,
-      (state.countsByDate.get(slotDateKey) ?? 0) + 1,
-    );
+    state.countsByDate.set(slotDateKey, (state.countsByDate.get(slotDateKey) ?? 0) + 1);
   } else {
     state.count++;
   }
@@ -166,9 +152,7 @@ function pickMeal(
     const required = candidates.filter((m) =>
       states.some(
         ({ rule, count }) =>
-          rule.operator === "at_least" &&
-          count < rule.value &&
-          mealMatchesSubject(m, rule),
+          rule.operator === "at_least" && count < rule.value && mealMatchesSubject(m, rule),
       ),
     );
     if (required.length > 0) return required[0]!;
@@ -181,7 +165,7 @@ function pickMeal(
 
 export class SchedulerService {
   generate(input: SchedulerInput): GeneratedSlot[] {
-    const { meals, previousMealIds, preferences, config, rules } = input;
+    const { meals, previousMealIds, preferences, config, rules, rng = Math.random } = input;
 
     // 1. Generate enabled slot frames
     const frames = generateSlotFrames(config, preferences.slotConfig);
@@ -196,18 +180,14 @@ export class SchedulerService {
     }));
 
     // 3. Effective constraints
-    const maxLeftovers =
-      config.maxLeftoverMealsOverride ?? preferences.maxLeftoverMeals;
+    const maxLeftovers = config.maxLeftoverMealsOverride ?? preferences.maxLeftoverMeals;
 
     // 4. Filter eligible meals: no BBQ, season matches, not in previous schedule
     const eligibleSeasons = getEligibleSeasons(config.startDate);
     const previousIds = new Set(previousMealIds);
 
     const eligibleMeals = meals.filter(
-      (m) =>
-        m.season !== "bbq" &&
-        eligibleSeasons.has(m.season) &&
-        !previousIds.has(m.id),
+      (m) => m.season !== "bbq" && eligibleSeasons.has(m.season) && !previousIds.has(m.id),
     );
 
     if (eligibleMeals.length === 0) return result;
@@ -220,7 +200,7 @@ export class SchedulerService {
     }));
 
     // 6. Shuffle for variety, then fill slots
-    const pool = shuffle(eligibleMeals);
+    const pool = shuffle(eligibleMeals, rng);
     const usedIds = new Set<number>();
     let leftoverCount = 0;
 
@@ -248,15 +228,7 @@ export class SchedulerService {
       // If all meals are used, reset uniqueness and try again (handles small pools)
       if (!meal && usedIds.size > 0) {
         usedIds.clear();
-        meal = pickMeal(
-          pool,
-          usedIds,
-          slot.mealTime,
-          slot.date,
-          slotDateKey,
-          ruleStates,
-          restrict,
-        );
+        meal = pickMeal(pool, usedIds, slot.mealTime, slot.date, slotDateKey, ruleStates, restrict);
       }
 
       if (!meal) continue; // all at_most rules exhausted — leave empty
@@ -265,8 +237,7 @@ export class SchedulerService {
       result[i] = { ...slot, type: "filled", mealId: meal.id };
       usedIds.add(meal.id);
       for (const state of ruleStates) {
-        if (mealMatchesSubject(meal, state.rule))
-          incrementRuleCount(state, slotDateKey);
+        if (mealMatchesSubject(meal, state.rule)) incrementRuleCount(state, slotDateKey);
       }
 
       // Place a leftover slot if applicable
