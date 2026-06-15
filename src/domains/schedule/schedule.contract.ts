@@ -4,9 +4,7 @@ import {
   generateScheduleInputSchema,
   updateSlotInputSchema,
   slotSelectSchema,
-  shoppingListItemSchema,
 } from "./schedule.zod";
-import { z } from "zod";
 
 export const generateScheduleContract = oc
   .route({
@@ -39,26 +37,4 @@ export const updateSlotContract = oc
   .output(slotSelectSchema)
   .errors({
     NOT_FOUND: { status: 404, message: "Slot not found in active schedule" },
-  });
-
-export const getShoppingListContract = oc
-  .route({
-    method: "GET",
-    path: "/schedule/shopping-list",
-    summary: "Get aggregated shopping list for the active schedule",
-    tags: ["Schedule"],
-  })
-  .output(z.array(shoppingListItemSchema));
-
-export const toggleShoppingItemContract = oc
-  .route({
-    method: "PATCH",
-    path: "/schedule/shopping-list/toggle",
-    summary: "Toggle check-off state for a shopping list item",
-    tags: ["Schedule"],
-  })
-  .input(z.object({ ingredientKey: z.string() }))
-  .output(shoppingListItemSchema)
-  .errors({
-    NOT_FOUND: { status: 404, message: "No active schedule" },
   });

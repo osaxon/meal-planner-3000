@@ -1,4 +1,4 @@
-import type { ShoppingListItem } from "./schedule.zod";
+import type { ShoppingListItem } from "./shopping-list.zod";
 
 type IngredientRow = {
   name: string;

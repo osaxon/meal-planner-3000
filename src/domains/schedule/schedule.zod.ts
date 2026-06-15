@@ -15,20 +15,11 @@ export const generateScheduleInputSchema = z.object({
   maxLeftoverMealsOverride: z.number().int().min(0).optional(),
 });
 
-export const shoppingListItemSchema = z.object({
-  ingredientKey: z.string(),
-  name: z.string(),
-  totalQuantity: z.number().nullable(),
-  unit: z.string().nullable(),
-  checked: z.boolean(),
-});
-
 export const updateSlotInputSchema = z.object({
   slotId: z.number().int().positive(),
   mealId: z.number().int().positive().nullable(),
 });
 
-export type ShoppingListItem = z.infer<typeof shoppingListItemSchema>;
 export type ScheduleWithSlots = z.infer<typeof scheduleWithSlotsSchema>;
 export type GenerateScheduleInput = z.infer<typeof generateScheduleInputSchema>;
 export type UpdateSlotInput = z.infer<typeof updateSlotInputSchema>;

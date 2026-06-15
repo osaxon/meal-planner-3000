@@ -1,14 +1,6 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
-import {
-  schedules,
-  slots,
-  householdPreferences,
-  mealIngredients,
-  shoppingListChecks,
-  schedulingRules,
-} from "#/db/schema";
+import { schedules, slots, householdPreferences, schedulingRules } from "#/db/schema";
 import { queryMealsWithTags } from "#/domains/meals/meals.queries";
-import { aggregateIngredients } from "./shopping-list.aggregator";
 import { promoteAndInsertSchedule } from "./schedule-lifecycle";
 import { resolveLeftoverReferences } from "./leftover-resolver";
 import { noopCollector } from "#/lib/wide-event";
@@ -16,12 +8,7 @@ import { SchedulerService } from "./scheduler.service";
 import { slotConfigSchema, defaultSlotConfig } from "#/domains/preferences/preferences.zod";
 import type { AppDb } from "#/db/factory";
 import type { EventCollector } from "#/lib/wide-event";
-import type {
-  GenerateScheduleInput,
-  ScheduleWithSlots,
-  Slot,
-  ShoppingListItem,
-} from "./schedule.zod";
+import type { GenerateScheduleInput, ScheduleWithSlots, Slot } from "./schedule.zod";
 import type { DomainError, Result } from "#/lib/result";
 import { ok, err } from "#/lib/result";
 
@@ -220,77 +207,5 @@ export class ScheduleService {
       .where(eq(slots.scheduleId, schedule.id));
 
     return { ...schedule, slots: scheduleSlots };
-  }
-
-  async getShoppingList(userId: string): Promise<ShoppingListItem[]> {
-    const schedule = await this.getActive(userId);
-    if (!schedule) return [];
-
-    // Collect meal IDs from filled (non-leftover) slots only
-    const filledMealIds = [
-      ...new Set(
-        schedule.slots
-          .filter((s) => s.type === "filled" && s.mealId !== null)
-          .map((s) => s.mealId as number),
-      ),
-    ];
-    if (filledMealIds.length === 0) return [];
-
-    // Fetch all ingredients for those meals
-    const ingredients = await this.db
-      .select()
-      .from(mealIngredients)
-      .where(inArray(mealIngredients.mealId, filledMealIds));
-
-    // Fetch check-off state for this schedule
-    const checks = await this.db
-      .select()
-      .from(shoppingListChecks)
-      .where(eq(shoppingListChecks.scheduleId, schedule.id));
-    const checkedKeys = new Set(checks.filter((c) => c.checked).map((c) => c.ingredientKey));
-
-    return aggregateIngredients(ingredients, checkedKeys);
-  }
-
-  async toggleShoppingItem(
-    userId: string,
-    ingredientKey: string,
-  ): Promise<Result<ShoppingListItem, DomainError<"NOT_FOUND">>> {
-    const schedule = await this.getActive(userId);
-    if (!schedule) return err({ code: "NOT_FOUND", message: "No active schedule" });
-
-    // Get current state (default false if not yet stored)
-    const [existing] = await this.db
-      .select()
-      .from(shoppingListChecks)
-      .where(
-        and(
-          eq(shoppingListChecks.scheduleId, schedule.id),
-          eq(shoppingListChecks.ingredientKey, ingredientKey),
-        ),
-      );
-
-    const newChecked = !(existing?.checked ?? false);
-
-    await this.db
-      .insert(shoppingListChecks)
-      .values({ scheduleId: schedule.id, ingredientKey, checked: newChecked })
-      .onConflictDoUpdate({
-        target: [shoppingListChecks.scheduleId, shoppingListChecks.ingredientKey],
-        set: { checked: newChecked },
-      });
-
-    // Return the updated item from the full list
-    const list = await this.getShoppingList(userId);
-    const item = list.find((i) => i.ingredientKey === ingredientKey);
-    return ok(
-      item ?? {
-        ingredientKey,
-        name: ingredientKey,
-        totalQuantity: null,
-        unit: null,
-        checked: newChecked,
-      },
-    );
   }
 }

@@ -5,18 +5,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/shopping-list")({
   loader: ({ context }) =>
-    context.queryClient.ensureQueryData(orpc.schedule.getShoppingList.queryOptions()),
+    context.queryClient.ensureQueryData(orpc.shoppingList.list.queryOptions()),
   component: ShoppingListPage,
 });
 
-const LIST_KEY = () => orpc.schedule.getShoppingList.queryOptions().queryKey;
+const LIST_KEY = () => orpc.shoppingList.list.queryOptions().queryKey;
 
 export const useShoppingList = () => {
   const queryClient = useQueryClient();
-  const { data: items } = useSuspenseQuery(orpc.schedule.getShoppingList.queryOptions());
+  const { data: items } = useSuspenseQuery(orpc.shoppingList.list.queryOptions());
 
   const toggleMutation = useMutation(
-    orpc.schedule.toggleShoppingItem.mutationOptions({
+    orpc.shoppingList.toggle.mutationOptions({
       onSuccess: () => void queryClient.invalidateQueries({ queryKey: LIST_KEY() }),
     }),
   );

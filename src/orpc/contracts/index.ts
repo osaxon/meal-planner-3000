@@ -19,9 +19,11 @@ import {
   generateScheduleContract,
   getActiveScheduleContract,
   updateSlotContract,
-  getShoppingListContract,
-  toggleShoppingItemContract,
 } from "#/domains/schedule/schedule.contract";
+import {
+  listShoppingListContract,
+  toggleShoppingItemContract,
+} from "#/domains/shopping-list/shopping-list.contract";
 import {
   listRulesContract,
   createRuleContract,
@@ -62,8 +64,10 @@ export const contract = {
     generate: generateScheduleContract,
     getActive: getActiveScheduleContract,
     updateSlot: updateSlotContract,
-    getShoppingList: getShoppingListContract,
-    toggleShoppingItem: toggleShoppingItemContract,
+  },
+  shoppingList: {
+    list: listShoppingListContract,
+    toggle: toggleShoppingItemContract,
   },
   rules: {
     list: listRulesContract,

@@ -18,9 +18,8 @@ import {
   generateSchedule,
   getActiveSchedule,
   updateSlot,
-  getShoppingList,
-  toggleShoppingItem,
 } from "#/domains/schedule/schedule.router";
+import { listShoppingList, toggleShoppingItem } from "#/domains/shopping-list/shopping-list.router";
 import {
   listMeals,
   createMeal,
@@ -61,8 +60,10 @@ const router = pub.router({
     generate: generateSchedule,
     getActive: getActiveSchedule,
     updateSlot,
-    getShoppingList,
-    toggleShoppingItem,
+  },
+  shoppingList: {
+    list: listShoppingList,
+    toggle: toggleShoppingItem,
   },
   meals: {
     list: listMeals,

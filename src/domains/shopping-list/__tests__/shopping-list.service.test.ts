@@ -1,18 +1,21 @@
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 import { createTestDb, type TestDb } from "#/db/test-utils";
 import { user, categories, meals, mealIngredients } from "#/db/schema";
-import { ScheduleService } from "../schedule.service";
+import { ScheduleService } from "#/domains/schedule/schedule.service";
+import { ShoppingListService } from "../shopping-list.service";
 
 const TEST_USER = { id: "user-1", name: "Alice", email: "alice@example.com" };
 const START_DATE = new Date("2024-01-01");
 
 let db: TestDb;
-let service: ScheduleService;
+let scheduleService: ScheduleService;
+let shopping: ShoppingListService;
 let categoryId: number;
 
 beforeEach(async () => {
   db = await createTestDb();
-  service = new ScheduleService(db);
+  scheduleService = new ScheduleService(db);
+  shopping = new ShoppingListService(db, scheduleService);
   await db.insert(user).values(TEST_USER);
   const [cat] = await db
     .insert(categories)
@@ -55,23 +58,23 @@ async function seedMealsWithIngredients() {
   return { meal1Id: meal1!.id, meal2Id: meal2!.id };
 }
 
-describe("getShoppingList", () => {
+describe("list", () => {
   it("returns empty list when no active schedule", async () => {
-    const list = await service.getShoppingList(TEST_USER.id);
+    const list = await shopping.list(TEST_USER.id);
     expect(list).toEqual([]);
   });
 
   it("returns empty list when active schedule has no filled slots", async () => {
-    await service.generate(TEST_USER.id, { startDate: START_DATE, durationWeeks: 1 });
-    const list = await service.getShoppingList(TEST_USER.id);
+    await scheduleService.generate(TEST_USER.id, { startDate: START_DATE, durationWeeks: 1 });
+    const list = await shopping.list(TEST_USER.id);
     expect(list).toHaveLength(0);
   });
 
   it("aggregates ingredients across filled slots, summing same-name same-unit items", async () => {
     await seedMealsWithIngredients();
-    await service.generate(TEST_USER.id, { startDate: START_DATE, durationWeeks: 1 });
+    await scheduleService.generate(TEST_USER.id, { startDate: START_DATE, durationWeeks: 1 });
 
-    const list = await service.getShoppingList(TEST_USER.id);
+    const list = await shopping.list(TEST_USER.id);
     const spaghetti = list.find((i) => i.ingredientKey === "spaghetti");
 
     expect(spaghetti).toBeDefined();
@@ -82,20 +85,20 @@ describe("getShoppingList", () => {
   it("does not include ingredients from leftover slots", async () => {
     const { meal1Id } = await seedMealsWithIngredients();
     // Generate with leftovers enabled so meal1 (producesLeftovers) gets a leftover slot
-    await service.generate(TEST_USER.id, {
+    await scheduleService.generate(TEST_USER.id, {
       startDate: START_DATE,
       durationWeeks: 1,
       maxLeftoverMealsOverride: 99,
     });
 
-    const active = await service.getActive(TEST_USER.id);
+    const active = await scheduleService.getActive(TEST_USER.id);
     const leftoverSlots = active!.slots.filter(
       (s) => s.type === "leftover" && s.mealId === meal1Id,
     );
 
     // If there's a leftover slot for meal1, the ingredients should NOT be double-counted
     if (leftoverSlots.length > 0) {
-      const list = await service.getShoppingList(TEST_USER.id);
+      const list = await shopping.list(TEST_USER.id);
       const mince = list.find((i) => i.ingredientKey === "mince");
       if (mince) {
         // Mince should appear at most once (from the filled slot, not the leftover)
@@ -106,49 +109,52 @@ describe("getShoppingList", () => {
 
   it("sets checked false by default", async () => {
     await seedMealsWithIngredients();
-    await service.generate(TEST_USER.id, { startDate: START_DATE, durationWeeks: 1 });
+    await scheduleService.generate(TEST_USER.id, { startDate: START_DATE, durationWeeks: 1 });
 
-    const list = await service.getShoppingList(TEST_USER.id);
+    const list = await shopping.list(TEST_USER.id);
     expect(list.every((i) => !i.checked)).toBe(true);
   });
 });
 
-describe("toggleShoppingItem", () => {
+describe("toggle", () => {
   it("returns NOT_FOUND when no active schedule", async () => {
-    const result = await service.toggleShoppingItem(TEST_USER.id, "spaghetti");
+    const result = await shopping.toggle(TEST_USER.id, "spaghetti");
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.code).toBe("NOT_FOUND");
   });
 
-  it("marks an item as checked", async () => {
+  it("marks an item as checked and returns it with its aggregated quantity", async () => {
     await seedMealsWithIngredients();
-    await service.generate(TEST_USER.id, { startDate: START_DATE, durationWeeks: 1 });
+    await scheduleService.generate(TEST_USER.id, { startDate: START_DATE, durationWeeks: 1 });
 
-    const result = await service.toggleShoppingItem(TEST_USER.id, "spaghetti");
+    const result = await shopping.toggle(TEST_USER.id, "spaghetti");
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.checked).toBe(true);
+    // Returned item is the toggled one, with its aggregate intact — not the whole list.
+    expect(result.value.ingredientKey).toBe("spaghetti");
+    expect(result.value.totalQuantity).toBe(500);
   });
 
   it("toggles back to unchecked on second call", async () => {
     await seedMealsWithIngredients();
-    await service.generate(TEST_USER.id, { startDate: START_DATE, durationWeeks: 1 });
+    await scheduleService.generate(TEST_USER.id, { startDate: START_DATE, durationWeeks: 1 });
 
-    await service.toggleShoppingItem(TEST_USER.id, "spaghetti");
-    const result = await service.toggleShoppingItem(TEST_USER.id, "spaghetti");
+    await shopping.toggle(TEST_USER.id, "spaghetti");
+    const result = await shopping.toggle(TEST_USER.id, "spaghetti");
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.checked).toBe(false);
   });
 
-  it("persists check-off state across calls to getShoppingList", async () => {
+  it("persists check-off state across calls to list", async () => {
     await seedMealsWithIngredients();
-    await service.generate(TEST_USER.id, { startDate: START_DATE, durationWeeks: 1 });
+    await scheduleService.generate(TEST_USER.id, { startDate: START_DATE, durationWeeks: 1 });
 
-    await service.toggleShoppingItem(TEST_USER.id, "spaghetti");
-    const list = await service.getShoppingList(TEST_USER.id);
+    await shopping.toggle(TEST_USER.id, "spaghetti");
+    const list = await shopping.list(TEST_USER.id);
 
     const spaghetti = list.find((i) => i.ingredientKey === "spaghetti");
     expect(spaghetti!.checked).toBe(true);
